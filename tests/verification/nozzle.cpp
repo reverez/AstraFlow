@@ -1,4 +1,5 @@
 #include "astraflow/geometry/nozzle.hpp"
+#include "astraflow/analysis/engineering.hpp"
 #include "astraflow/numerics/finite_volume.hpp"
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -128,3 +129,30 @@ TEST_CASE("CUDA axisymmetric nozzle parity", "[cuda]") {
     REQUIRE(error < 1e-10);
 }
 #endif
+
+TEST_CASE("Nozzle recovers choking from under-speed initial flow", "[nozzle]") {
+    Nozzle g;
+    g.nx = 64;
+    g.nr = 8;
+    auto mesh = nozzle_mesh(g);
+    Settings s;
+    s.back_pressure = 0.07;
+    auto solver = make_cpu_solver(mesh, s);
+    auto initial = nozzle_initial_state(mesh, g, s);
+    for (auto &w : initial) {
+        w[1] *= 0.8;
+        w[2] *= 0.8;
+    }
+    solver->initialize(initial);
+    auto before = engineering(mesh, solver->state(), s.gas, s.back_pressure);
+    while (solver->stats().time < 20)
+        solver->step(20 - solver->stats().time);
+    auto result = engineering(mesh, solver->state(), s.gas, s.back_pressure);
+    double first = before["throat_mach"], last = result["throat_mach"],
+           spread = result["mass_flow_spread"];
+    std::cout << "Perturbed nozzle initial_throat_M=" << first << " final_throat_M=" << last
+              << " mass_spread=" << spread << '\n';
+    REQUIRE(last > first + 0.1);
+    REQUIRE(std::abs(last - 1) < 0.15);
+    REQUIRE(spread < 0.05);
+}

@@ -3,13 +3,21 @@
 #include <stdexcept>
 namespace astraflow {
 void Mesh::validate() const {
-    if (nx < 2 || nr < 2 || cells.size() != std::size_t(nx * nr) ||
+    if (nx < 2 || nr < 2 || nx > 1000000 / nr || cells.size() != std::size_t(nx * nr) ||
         vertices.size() != std::size_t((nx + 1) * (nr + 1)))
         throw std::invalid_argument("Invalid mesh dimensions");
     for (auto p : vertices)
         if (!std::isfinite(p.x) || !std::isfinite(p.r))
             throw std::invalid_argument("Nonfinite mesh vertex");
     for (const auto &c : cells) {
+        for (double x : {c.x, c.r, c.planar_area, c.skew, c.radial_source})
+            if (!std::isfinite(x))
+                throw std::invalid_argument("Nonfinite cell geometry");
+        if (axisymmetric && !(c.r > 0))
+            throw std::invalid_argument("Axisymmetric cell centre must have positive radius");
+        for (int n : c.neighbors)
+            if (n < -1 || n >= int(cells.size()))
+                throw std::invalid_argument("Invalid cell neighbor");
         if (!(c.volume > 0) || !std::isfinite(c.volume) || !(c.dx > 0) || !(c.dr > 0))
             throw std::invalid_argument("Invalid cell metric");
         for (int f : c.faces)
@@ -17,6 +25,9 @@ void Mesh::validate() const {
                 throw std::invalid_argument("Invalid face index");
     }
     for (const auto &f : faces) {
+        for (double x : {f.x, f.r, f.nx, f.nr})
+            if (!std::isfinite(x))
+                throw std::invalid_argument("Nonfinite face geometry");
         if (f.area < 0 || !std::isfinite(f.area) || std::abs(f.nx * f.nx + f.nr * f.nr - 1) > 1e-12)
             throw std::invalid_argument("Invalid face metric");
         if (f.left < 0 && f.right < 0)
@@ -26,8 +37,8 @@ void Mesh::validate() const {
     }
 }
 Mesh rectangular_mesh(int nx, int nr, double length, double height, bool px, bool pr, bool walls) {
-    if (nx < 2 || nr < 2 || !(length > 0) || !(height > 0) || !std::isfinite(length) ||
-        !std::isfinite(height) || nx > 1000000 / nr)
+    if (nx < 2 || nr < 2 || nx > 1000000 / nr || !(length > 0) || !(height > 0) ||
+        !std::isfinite(length) || !std::isfinite(height))
         throw std::invalid_argument("Invalid rectangular mesh parameters");
     Mesh m;
     m.nx = nx;

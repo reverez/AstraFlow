@@ -39,7 +39,7 @@ nlohmann::json engineering(const Mesh &m, const std::vector<double> &state, Gas 
         }
     }
     double mdot = 0, inlet = 0, thrust = 0, pressure = 0, temperature = 0, mach = 0, velocity = 0,
-           exit_area = 0, chamber = 0;
+           exit_area = 0, chamber = 0, inlet_area = 0;
     for (int j = 0; j < m.nr; ++j) {
         int ei = j * m.nx + m.nx - 1, ii = j * m.nx;
         auto e = at(ei), in = at(ii);
@@ -53,7 +53,8 @@ nlohmann::json engineering(const Mesh &m, const std::vector<double> &state, Gas 
         mach += std::hypot(e[1], e[2]) / sound_speed(e, gas) * a;
         velocity += e[1] * dm;
         exit_area += a;
-        chamber += in[3] / m.nr;
+        chamber += in[3] * ai;
+        inlet_area += ai;
     }
     auto [lo, hi] = std::minmax_element(station_mass.begin(), station_mass.end());
     double scale = std::max(std::abs(*lo), std::abs(*hi));
@@ -66,7 +67,7 @@ nlohmann::json engineering(const Mesh &m, const std::vector<double> &state, Gas 
         {"exit_temperature", temperature / exit_area},
         {"exit_area", exit_area},
         {"estimated_thrust", thrust},
-        {"chamber_to_exit_pressure_ratio", chamber / (pressure / exit_area)},
+        {"chamber_to_exit_pressure_ratio", (chamber / inlet_area) / (pressure / exit_area)},
         {"station_mass_flow", station_mass},
         {"station_axial_mach", station_mach},
         {"mass_flow_spread", scale > 0 ? (*hi - *lo) / scale : 0},

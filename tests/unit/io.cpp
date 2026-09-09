@@ -68,3 +68,20 @@ TEST_CASE("Dimensional reference scaling roundtrip", "[unit]") {
     REQUIRE(sim.stats().time > 0);
     REQUIRE(sim.scales().pressure == 2e6);
 }
+
+TEST_CASE("Pressure averages respect annular area weights", "[unit]") {
+    Nozzle g;
+    g.nx = 8;
+    g.nr = 2;
+    auto mesh = nozzle_mesh(g);
+    int n = int(mesh.cells.size());
+    std::vector<double> u(4 * n);
+    for (int i = 0; i < n; ++i) {
+        auto q = conservative(State<double>{{1, 1, 0, i < g.nx ? 1.0 : 3.0}}, Gas{});
+        for (int k = 0; k < 4; ++k)
+            u[k * n + i] = q[k];
+    }
+    auto result = engineering(mesh, u, Gas{}, 1);
+    REQUIRE(result["exit_pressure"].get<double>() == Approx(2.5));
+    REQUIRE(result["chamber_to_exit_pressure_ratio"].get<double>() == Approx(1));
+}

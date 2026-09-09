@@ -2,6 +2,7 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <iostream>
+#include <limits>
 using namespace astraflow;
 using Catch::Approx;
 TEST_CASE("Rectangular mesh geometry and face closure", "[unit]") {
@@ -79,3 +80,15 @@ TEST_CASE("2D conservative evolution and CPU GPU parity", "[cuda]") {
     REQUIRE(maximum < 2e-11);
 }
 #endif
+
+TEST_CASE("Mesh rejects nonfinite normals and invalid adjacency", "[unit]") {
+    auto mesh = rectangular_mesh(4, 4);
+    mesh.faces[0].nx = std::numeric_limits<double>::quiet_NaN();
+    REQUIRE_THROWS(mesh.validate());
+    mesh = rectangular_mesh(4, 4);
+    mesh.cells[0].neighbors[0] = 1000;
+    REQUIRE_THROWS(mesh.validate());
+    Settings s;
+    s.p0 = -1;
+    REQUIRE_THROWS(make_cpu_solver(rectangular_mesh(4, 4), s));
+}

@@ -20,6 +20,10 @@ std::string limiter_name(Limiter l) {
 } // namespace
 void Config::validate() const {
     validate_settings(settings);
+    if ((problem == "rocket_nozzle" || problem == "isentropic_nozzle") &&
+        settings.upper_wall_speed != 0)
+        throw std::invalid_argument(
+            "Moving-wall verification is supported only on Cartesian domains");
     geometry.validate();
     if (problem != "sod" && problem != "rocket_nozzle" && problem != "isentropic_nozzle" &&
         problem != "viscous_channel")

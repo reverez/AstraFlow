@@ -3,14 +3,20 @@
 #include <catch2/catch_test_macros.hpp>
 #include <iostream>
 using namespace astraflow;
-TEST_CASE("Compressible Couette velocity and temperature", "[viscous]") {
+static void couette(bool gpu = false, bool fp64 = true) {
     auto m = rectangular_mesh(4, 24, 1, 1, true, false, true);
     Settings s;
     s.no_slip = true;
     s.wall_temperature = 1;
     s.upper_wall_speed = 1;
     s.gas.viscosity = 0.05;
-    auto solver = make_cpu_solver(m, s);
+    std::unique_ptr<Solver> solver;
+#ifdef ASTRAFLOW_HAS_CUDA
+    if (gpu)
+        solver = make_cuda_solver(m, s, fp64);
+#endif
+    if (!solver)
+        solver = make_cpu_solver(m, s, fp64);
     std::vector<State<double>> initial;
     for (auto c : m.cells)
         initial.push_back({{1, 0.8 * c.r, 0, 1}});
@@ -31,12 +37,20 @@ TEST_CASE("Compressible Couette velocity and temperature", "[viscous]") {
         temperature_error += std::abs(w[3] / w[0] - T) / n;
         REQUIRE(physical(w, s.gas));
     }
-    std::cout << "Couette 4x24 t=15 steps=" << solver->stats().iterations
+    std::cout << "Couette " << (gpu ? "CUDA" : "CPU") << " FP" << (fp64 ? 64 : 32)
+              << " 4x24 t=15 steps=" << solver->stats().iterations
               << " velocity_L1=" << velocity_error << " temperature_L1=" << temperature_error
               << '\n';
     REQUIRE(velocity_error < 0.002);
     REQUIRE(temperature_error < 0.001);
 }
+TEST_CASE("Compressible Couette velocity and temperature", "[viscous]") { couette(); }
+#ifdef ASTRAFLOW_HAS_CUDA
+TEST_CASE("CUDA long-time Couette analytical verification", "[cuda]") {
+    couette(true, true);
+    couette(true, false);
+}
+#endif
 TEST_CASE("Viscous adiabatic rocket nozzle remains physical", "[viscous]") {
     Nozzle g;
     g.nx = 48;

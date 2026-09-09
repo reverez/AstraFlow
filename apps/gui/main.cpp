@@ -167,7 +167,14 @@ int main(int argc, char **argv) {
             else
                 throw std::invalid_argument("Unknown or incomplete GUI option");
         }
-        Config active = Config::read(config_path), draft = active;
+        Config active = Config::read(config_path);
+        if (smoke) {
+            // Prevent a fast GPU from reaching a case limit before the scripted pause/step checks.
+            active.max_iterations = 100000;
+            active.end_time = 0;
+            active.residual_tolerance = 0;
+        }
+        Config draft = active;
         std::string gpu = device_info(), edit_error;
         glfwSetErrorCallback(
             [](int, const char *message) { std::cerr << "GLFW: " << message << '\n'; });
