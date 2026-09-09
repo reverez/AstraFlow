@@ -46,6 +46,7 @@ def main():
                 try:
                     meta=read_json(attempt/'provenance.json')
                     if meta['request']!=provenance: continue
+                    if meta['exit_code']!=0: raise ValueError('Previous CLI process failed')
                     if any(digest(attempt/k)!=v for k,v in meta['sha256'].items()): raise ValueError('Output checksum mismatch')
                     summary,_=validate_run(attempt)
                     reused=(attempt,summary);break
@@ -58,6 +59,7 @@ def main():
                 attempt=parent/f'attempt-{len(previous)+1:03d}'
                 request=parent/f'request-{len(previous)+1:03d}.json'
                 if request.exists(): raise RuntimeError(f'Request path already exists: {request}')
+                attempt.mkdir()  # Preserve a failed startup as a distinct attempt too.
                 request.write_text(json.dumps(config,indent=2)+'\n')
                 start=time.time()
                 print(f'Running {grid} {args.backend} {args.precision}: {attempt}',flush=True)

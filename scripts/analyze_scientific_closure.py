@@ -76,6 +76,8 @@ def validate_run(directory):
     history=read_csv(directory/'engineering.csv'); residual=read_csv(directory/'convergence.csv')
     if s.get('termination_reason')!='steady_converged' or s.get('converged') is not True:
         raise ValueError(f'{directory}: not steady-converged ({s.get("termination_reason")})')
+    if s['grid'] != [config['mesh']['nx'],config['mesh']['nr']] or any(s[k]!=config['runtime'][k] for k in ('backend','precision')):
+        raise ValueError('Configuration/summary identity mismatch')
     end=s['iterations']; settings=config['convergence']; start=end-settings['window_iterations']
     if end < settings['minimum_iterations'] or history[-1]['iteration'] != end or residual[-1]['iteration'] != end:
         raise ValueError('Incomplete final history or minimum iteration count')
@@ -103,6 +105,10 @@ def validate_run(directory):
             raise ValueError('Summary residual mismatch')
     for k in METRICS:
         if not math.isfinite(s[k]): raise ValueError(f'Nonfinite engineering metric {k}')
+    for k in OBSERVABLES + ('mass_conservation_error','mass_flow_spread'):
+        if not math.isclose(history[-1][k],s[k],rel_tol=1e-12,abs_tol=1e-30):
+            raise ValueError('Summary engineering mismatch')
+    if not (directory/'final_state.vts').exists(): raise ValueError('Missing final field')
     return s,st
 
 def fields(directory):
@@ -138,6 +144,13 @@ def analyze(root):
     runs=[(root/e['directory']).resolve() for e in manifest['runs'] if e.get('converged')]
     verified=[validate_run(p)[0] for p in runs]
     if len(verified)<1: raise ValueError('No accepted steady grids')
+    def physical_signature(p):
+        config=read_json(p/'config.json')
+        config.pop('mesh');config.pop('output')
+        config['runtime'].pop('max_iterations')
+        return config
+    if any(physical_signature(p)!=physical_signature(runs[0]) for p in runs[1:]):
+        raise ValueError('Grid study mixes physical/numerical configuration or precision')
     profiles=[fields(p)[0] for p in runs]
     (root/'profiles').mkdir(exist_ok=True)
     for s,p in zip(verified,profiles):
@@ -150,13 +163,20 @@ def analyze(root):
         lo=max(a['x_over_L'][0],b['x_over_L'][0]); hi=min(a['x_over_L'][-1],b['x_over_L'][-1])
         x=[lo+(hi-lo)*i/2048 for i in range(2049)]
         pn={k:norms(interpolate(a['x_over_L'],a[k],x),interpolate(b['x_over_L'],b[k],x)) for k in a if k!='x_over_L'}
+        geometry=read_json(runs[0]/'config.json')['geometry']
+        throat=(geometry['chamber_length']+geometry['contraction_length'])/(geometry['chamber_length']+geometry['contraction_length']+geometry['expansion_length'])
+        throat_indices=[i for i,t in enumerate(x) if abs(t-throat)<=.03]
+        for k in pn:
+            aa=interpolate(a['x_over_L'],a[k],x);bb=interpolate(b['x_over_L'],b[k],x)
+            pn[k]['Linf_x_over_L']=x[max(range(len(x)),key=lambda i:abs(aa[i]-bb[i]))]
+            pn[k]['throat_band_norms']=norms([aa[i] for i in throat_indices],[bb[i] for i in throat_indices])
         comparisons.append({'coarse':coarse['grid'],'fine':fine['grid'],'relative_differences':changes,'profile_norms':pn,
             'common_x_over_L':[lo,hi],'common_points':len(x),'global_goals_pass':all(changes[k]<=v for k,v in GOALS.items())})
     rich={}
     if len(verified)>=3:
         for k in OBSERVABLES:
             rich[k]=richardson(*(s[k] for s in verified[-3:]))
-    report={'grids':[{k:s[k] for k in ('grid','iterations','simulated_time',*METRICS)} for s in verified],
+    report={'excluded_runs':[e for e in manifest['runs'] if not e.get('converged')], 'grids':[{k:s[k] for k in ('grid','iterations','simulated_time',*METRICS)} for s in verified],
             'comparisons':comparisons,'richardson':rich,
             'global_grid_goals_pass':len(verified)>=3 and comparisons[-1]['global_goals_pass'],
             'valid_gci_goals_pass':bool(rich) and all(not v['valid'] or v['gci_percent']<=1 for v in rich.values()),
@@ -168,7 +188,61 @@ def analyze(root):
         for s in verified: w.writerow((*s['grid'],s['iterations'],*(s[k] for k in METRICS)))
     return report
 
+def compare_backends(cpu_directory, cuda_directory):
+    cpu_directory, cuda_directory = Path(cpu_directory), Path(cuda_directory)
+    a,_=validate_run(cpu_directory);b,_=validate_run(cuda_directory)
+    if a['grid']!=b['grid'] or a['precision']!='double' or b['precision']!='double':
+        raise ValueError('CPU/CUDA reference comparison requires matching FP64 grids')
+    def signature(directory):
+        c=read_json(directory/'config.json');c.pop('output')
+        c['runtime'].pop('backend');c['runtime'].pop('max_iterations')
+        return c
+    if signature(cpu_directory)!=signature(cuda_directory):
+        raise ValueError('CPU/CUDA comparison mixes configuration')
+    _,u=fields(cpu_directory);_,v=fields(cuda_directory)
+    ref=read_json(cpu_directory/'performance.json')['reference_scales']
+    factors=[ref['density'],ref['density']*ref['velocity'],ref['density']*ref['velocity'],ref['pressure']]
+    field_norms={name:norms([x/f for x in aa],[x/f for x in bb]) for name,aa,bb,f in zip(('rho','rho_u','rho_v','rho_E'),u,v,factors)}
+    engineering={k:abs((a[k]-b[k])/b[k]) for k in METRICS if b[k]!=0}
+    return {'cpu_iterations':a['iterations'],'cuda_iterations':b['iterations'],
+            'nondimensional_conservative_norms':field_norms,'engineering_relative_differences':engineering,
+            'maximum_field_difference':max(x['Linf'] for x in field_norms.values()),
+            'same_iteration_parity_bound':1e-10,
+            'parity_pass':a['iterations']==b['iterations'] and max(x['Linf'] for x in field_norms.values())<=1e-10}
+
+def prepare_diagnostic(directory, output):
+    directory,output=Path(directory),Path(output)
+    output.mkdir(parents=True,exist_ok=True)
+    config_path,primitive_path=output/'normalized-config.json',output/'primitives.txt'
+    if config_path.exists() or primitive_path.exists():
+        raise FileExistsError('Diagnostic inputs already exist; choose a new output directory')
+    c=read_json(directory/'config.json')
+    scale=read_json(directory/'performance.json')['reference_scales']
+    length,rho,velocity,pressure,temperature=(scale[k] for k in ('length','density','velocity','pressure','temperature'))
+    for key in c['geometry']: c['geometry'][key]/=length
+    c['gas']['gas_constant']=1
+    c['gas']['viscosity']/=rho*velocity*length
+    c['gas']['rho_floor']/=rho;c['gas']['p_floor']/=pressure;c['gas']['temperature_floor']/=temperature
+    for key,factor in [('P0',pressure),('T0',temperature),('back_pressure',pressure),('wall_temperature',temperature),('upper_wall_speed',velocity)]:
+        c['boundary_conditions'][key]/=factor
+    _,u=fields(directory)
+    config_path.write_text(json.dumps(c,indent=2,allow_nan=False)+'\n')
+    with primitive_path.open('x') as f:
+        for d,mx,mr,e in zip(*u):
+            p=(c['gas']['gamma']-1)*(e-.5*(mx*mx+mr*mr)/d)
+            f.write(f'{d/rho:.17g} {mx/d/velocity:.17g} {mr/d/velocity:.17g} {p/pressure:.17g}\n')
+    return {'configuration':str(config_path),'primitives':str(primitive_path)}
+
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('root',type=Path);args=parser.parse_args()
-    result=analyze(args.root)
+    parser=argparse.ArgumentParser()
+    parser.add_argument('root',type=Path)
+    parser.add_argument('--prepare-diagnostic',type=Path,metavar='NEW_DIRECTORY')
+    parser.add_argument('--compare-cpu',type=Path,metavar='CPU_RUN')
+    args=parser.parse_args()
+    if args.prepare_diagnostic:
+        result=prepare_diagnostic(args.root,args.prepare_diagnostic)
+    elif args.compare_cpu:
+        result=compare_backends(args.compare_cpu,args.root)
+    else:
+        result=analyze(args.root)
     print(json.dumps(result,indent=2,allow_nan=False))

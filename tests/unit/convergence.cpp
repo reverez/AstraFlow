@@ -97,3 +97,19 @@ TEST_CASE("Simulation limits and user stop report nonconvergence", "[unit][conve
     j["convergence"]["window_iterations"] = 21;
     REQUIRE_THROWS(Config::parse(j));
 }
+TEST_CASE("Numerical failure is explicitly recorded rather than converged", "[unit][convergence]") {
+    Config c;
+    c.backend = "cpu";
+    c.precision = "double";
+    c.geometry.nx = 8;
+    c.geometry.nr = 4;
+    // Finite extreme transport makes squared residuals overflow: a numerical failure, not bad JSON.
+    c.settings.gas.viscosity = 1e155;
+    c.settings.no_slip = true;
+    Simulation simulation(c);
+    REQUIRE_THROWS(simulation.step());
+    REQUIRE(simulation.termination() == "invalid_state");
+    auto report = simulation.convergence_report();
+    REQUIRE(report["converged"] == false);
+    REQUIRE_FALSE(simulation.failure().empty());
+}
