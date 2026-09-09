@@ -10,6 +10,11 @@ class Simulation {
     void step();
     bool finished() const;
     std::string termination() const;
+    void stop() { stopped_ = true; }
+    nlohmann::json convergence_report() const;
+    const nlohmann::json &sampled_engineering() const { return engineering_; }
+    int sampled_iteration() const { return sampled_iteration_; }
+    const std::string &failure() const { return failure_; }
     std::vector<double> state() const;
     const Mesh &mesh() const { return physical_mesh_; }
     const Config &config() const { return config_; }
@@ -19,6 +24,11 @@ class Simulation {
 
   private:
     Config config_;
+    ConvergenceMonitor monitor_;
+    nlohmann::json engineering_ = nlohmann::json::object();
+    int sampled_iteration_ = 0;
+    bool stopped_ = false;
+    std::string failure_;
     Scales scales_;
     Mesh physical_mesh_;
     std::unique_ptr<Solver> solver_;

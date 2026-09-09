@@ -1,6 +1,11 @@
 #include "astraflow/core/device.hpp"
 #include "astraflow/io/output.hpp"
 #include <chrono>
+#include <csignal>
+namespace {
+volatile std::sig_atomic_t interrupted = 0;
+void interrupt(int) { interrupted = 1; }
+} // namespace
 #include <iostream>
 #include <optional>
 int main(int argc, char **argv) {
@@ -58,11 +63,23 @@ int main(int argc, char **argv) {
         astraflow::Simulation simulation(config);
         astraflow::RunOutput writer(simulation);
         auto start = std::chrono::steady_clock::now();
-        while (!simulation.finished()) {
-            simulation.step();
-            if (simulation.stats().iterations % config.output_interval == 0)
-                writer.record(simulation);
+        std::signal(SIGINT, interrupt);
+        std::signal(SIGTERM, interrupt);
+        try {
+            while (!simulation.finished() && !interrupted) {
+                simulation.step();
+                if (simulation.stats().iterations % config.output_interval == 0 ||
+                    simulation.sampled_iteration() == simulation.stats().iterations)
+                    writer.record(simulation);
+            }
+        } catch (const std::exception &) {
+            writer.finish(simulation, std::chrono::duration<double, std::milli>(
+                                          std::chrono::steady_clock::now() - start)
+                                          .count());
+            throw;
         }
+        if (interrupted)
+            simulation.stop();
         double ms =
             std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start)
                 .count();
@@ -72,6 +89,7 @@ int main(int argc, char **argv) {
                   << "\nIterations: " << result["iterations"]
                   << "\nSimulated time: " << result["simulated_time"] << "\nWall time (ms): " << ms
                   << "\nTermination: " << simulation.termination()
+                  << "\nConverged: " << result["converged"]
                   << "\nMass flow: " << result["mass_flow"]
                   << "\nExit Mach: " << result["exit_mach"]
                   << "\nExit pressure: " << result["exit_pressure"]

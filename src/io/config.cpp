@@ -20,6 +20,7 @@ std::string limiter_name(Limiter l) {
 } // namespace
 void Config::validate() const {
     validate_settings(settings);
+    convergence.validate();
     if ((problem == "rocket_nozzle" || problem == "isentropic_nozzle") &&
         settings.upper_wall_speed != 0)
         throw std::invalid_argument(
@@ -83,11 +84,19 @@ nlohmann::json Config::json() const {
               {"max_iterations", max_iterations},
               {"end_time", end_time},
               {"residual_tolerance", residual_tolerance}}},
+            {"convergence",
+             {{"minimum_iterations", convergence.minimum_iterations},
+              {"sampling_interval", convergence.sampling_interval},
+              {"window_iterations", convergence.window_iterations},
+              {"relative_residual_target", convergence.relative_residual_target},
+              {"observable_tolerance", convergence.observable_tolerance},
+              {"mass_mismatch_tolerance", convergence.mass_mismatch_tolerance},
+              {"station_spread_tolerance", convergence.station_spread_tolerance}}},
             {"output", {{"directory", output.string()}, {"interval", output_interval}}}};
 }
 Config Config::parse(const nlohmann::json &j) {
     keys(j, {"problem", "gas", "geometry", "mesh", "boundary_conditions", "numerics", "runtime",
-             "output"});
+             "output", "convergence"});
     Config c;
     c.problem = j.value("problem", c.problem);
     auto read = [&](const char *section, std::initializer_list<const char *> allowed) {
@@ -150,6 +159,17 @@ Config Config::parse(const nlohmann::json &j) {
     c.max_iterations = r.value("max_iterations", c.max_iterations);
     c.end_time = r.value("end_time", c.end_time);
     c.residual_tolerance = r.value("residual_tolerance", c.residual_tolerance);
+    auto cv = read("convergence", {"minimum_iterations", "sampling_interval", "window_iterations",
+                                   "relative_residual_target", "observable_tolerance",
+                                   "mass_mismatch_tolerance", "station_spread_tolerance"});
+    auto &cs = c.convergence;
+    cs.minimum_iterations = cv.value("minimum_iterations", cs.minimum_iterations);
+    cs.sampling_interval = cv.value("sampling_interval", cs.sampling_interval);
+    cs.window_iterations = cv.value("window_iterations", cs.window_iterations);
+    cs.relative_residual_target = cv.value("relative_residual_target", cs.relative_residual_target);
+    cs.observable_tolerance = cv.value("observable_tolerance", cs.observable_tolerance);
+    cs.mass_mismatch_tolerance = cv.value("mass_mismatch_tolerance", cs.mass_mismatch_tolerance);
+    cs.station_spread_tolerance = cv.value("station_spread_tolerance", cs.station_spread_tolerance);
     auto o = read("output", {"directory", "interval"});
     c.output = o.value("directory", std::string{});
     c.output_interval = o.value("interval", c.output_interval);

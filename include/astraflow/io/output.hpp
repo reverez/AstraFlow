@@ -12,7 +12,7 @@ class RunOutput {
 
   private:
     std::filesystem::path directory_;
-    std::ofstream csv_;
-    int last_iteration_ = -1;
+    std::ofstream csv_, engineering_csv_;
+    int last_iteration_ = -1, last_engineering_iteration_ = -1;
 };
 } // namespace astraflow

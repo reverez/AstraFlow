@@ -71,9 +71,28 @@ RunOutput::RunOutput(const Simulation &sim) {
     csv_ << std::setprecision(17)
          << "iteration,time,dt,mass_residual,axial_momentum_residual,radial_momentum_residual,"
             "energy_residual,iteration_ms\n";
+    engineering_csv_.open(directory_ / "engineering.csv");
+    engineering_csv_.exceptions(std::ios::failbit | std::ios::badbit);
+    engineering_csv_ << std::setprecision(17) << "iteration,time";
+    for (auto field : stability_fields)
+        engineering_csv_ << ',' << field;
+    engineering_csv_
+        << ",mass_conservation_error,mass_flow_spread,flux_fallbacks,reconstruction_fallbacks\n";
 }
 void RunOutput::record(const Simulation &sim) {
     auto s = sim.stats();
+    if (sim.sampled_iteration() == s.iterations && s.iterations != last_engineering_iteration_ &&
+        s.iterations > 0) {
+        last_engineering_iteration_ = s.iterations;
+        engineering_csv_ << s.iterations << ',' << s.time;
+        const auto &e = sim.sampled_engineering();
+        for (auto field : stability_fields)
+            engineering_csv_ << ',' << e.at(field);
+        engineering_csv_ << ',' << e.at("mass_conservation_error") << ','
+                         << e.at("mass_flow_spread") << ',' << s.flux_fallbacks << ','
+                         << s.reconstruction_fallbacks << '\n';
+        engineering_csv_.flush();
+    }
     if (s.iterations == last_iteration_)
         return;
     last_iteration_ = s.iterations;
@@ -81,14 +100,20 @@ void RunOutput::record(const Simulation &sim) {
     for (double r : s.residual)
         csv_ << ',' << r;
     csv_ << ',' << s.iteration_ms << '\n';
+    csv_.flush();
 }
 nlohmann::json RunOutput::finish(const Simulation &sim, double wall_ms) {
     record(sim);
     csv_.flush();
-    auto state = sim.state();
-    write_vtk(directory_ / "final_state.vts", sim.mesh(), state, sim.config().settings.gas);
-    auto result = engineering(sim.mesh(), state, sim.config().settings.gas,
-                              sim.config().settings.back_pressure);
+    engineering_csv_.flush();
+    auto result = sim.sampled_engineering();
+    if (sim.termination() != "invalid_state") {
+        auto state = sim.state();
+        write_vtk(directory_ / "final_state.vts", sim.mesh(), state, sim.config().settings.gas);
+        result = engineering(sim.mesh(), state, sim.config().settings.gas,
+                             sim.config().settings.back_pressure);
+    }
+    result.update(sim.convergence_report());
     auto s = sim.stats();
     result["backend"] = sim.config().backend;
     result["precision"] = sim.config().precision;

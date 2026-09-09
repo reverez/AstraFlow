@@ -1,8 +1,10 @@
 #include "astraflow/core/simulation.hpp"
+#include "astraflow/analysis/engineering.hpp"
 #include <algorithm>
 #include <stdexcept>
 namespace astraflow {
-Simulation::Simulation(Config config) : config_(std::move(config)) {
+Simulation::Simulation(Config config)
+    : config_(std::move(config)), monitor_(config_.convergence, config_.residual_tolerance) {
     config_.validate();
     auto s = config_.settings;
     bool nozzle = config_.problem == "rocket_nozzle" || config_.problem == "isentropic_nozzle";
@@ -80,19 +82,43 @@ void Simulation::step() {
     if (finished())
         return;
     double cap = config_.end_time > 0 ? (config_.end_time - stats().time) / scales_.time : 1e100;
-    solver_->step(cap);
+    try {
+        solver_->step(cap);
+        const auto &s = solver_->stats();
+        monitor_.initial(s.residual);
+        if (s.iterations == 1 || s.iterations % config_.convergence.sampling_interval == 0) {
+            engineering_ = engineering(physical_mesh_, state(), config_.settings.gas,
+                                       config_.settings.back_pressure);
+            sampled_iteration_ = s.iterations;
+            monitor_.sample(s.iterations, s.residual, engineering_);
+        }
+    } catch (const std::exception &e) {
+        failure_ = e.what();
+        throw;
+    }
 }
 bool Simulation::finished() const { return termination() != "running"; }
 std::string Simulation::termination() const {
     const auto &s = solver_->stats();
-    if (s.iterations > 0 && config_.residual_tolerance > 0 &&
-        *std::max_element(s.residual.begin(), s.residual.end()) < config_.residual_tolerance)
-        return "converged";
+    if (!failure_.empty())
+        return "invalid_state";
+    if (stopped_)
+        return "user_stop";
+    if (monitor_.converged())
+        return "steady_converged";
     if (s.iterations >= config_.max_iterations)
         return "iteration_limit";
     if (config_.end_time > 0 && s.time * scales_.time >= config_.end_time * (1 - 1e-13))
         return "time_limit";
     return "running";
+}
+nlohmann::json Simulation::convergence_report() const {
+    auto report = monitor_.report(solver_->stats().residual);
+    report["converged"] = termination() == "steady_converged";
+    report["termination_reason"] = termination();
+    if (!failure_.empty())
+        report["failure"] = failure_;
+    return report;
 }
 std::vector<double> Simulation::state() const {
     auto u = solver_->state();

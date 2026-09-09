@@ -36,3 +36,15 @@ M0–M9 gates passed. Development continued at the user-relocated `/home/arnav/d
 ## Deferred
 
 Only specified Phase 2 features: plume, chemistry, turbulence, advanced thermodynamics, CUDA/OpenGL interop and advanced nozzle optimisation.
+
+## V1.1 scientific closure
+
+- [x] C0: annotated v1.0.0 preserves ecd0337; development on v1.1-scientific-closure; main unchanged; baseline Release suite passes.
+- [x] C1: convergence monitor, full engineering window, explicit termination/output and dedicated FP64 configuration; CPU 6/6, CUDA 8/8, legacy 3,000-step iteration-limit check and analysis unit tests pass.
+- [ ] C2: 128x32 rocket steady closure.
+- [ ] C3: independently converged rocket grid study and CPU reference cross-check.
+- [ ] C4: Richardson/GCI analysis where valid.
+- [ ] C5: scientific figures and closure report.
+- [ ] C6: final acceptance pass and branch publication (no merge).
+
+Next: measure baseline FP64 convergence, then refine only after all steady criteria pass. Details and exact criteria are in [rocket_scientific_closure.md](verification/rocket_scientific_closure.md).
