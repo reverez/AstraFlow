@@ -1,1 +1,29 @@
-{"problem":"sod","gas":{"gamma":1.4,"gas_constant":1},"mesh":{"nx":400},"numerics":{"cfl":0.4,"limiter":"mc"},"runtime":{"end_time":0.2}}
+{
+  "problem": "sod",
+  "gas": {
+    "gamma": 1.4,
+    "gas_constant": 1
+  },
+  "geometry": {
+    "length": 1,
+    "height": 1
+  },
+  "mesh": {
+    "nx": 400,
+    "nr": 2
+  },
+  "numerics": {
+    "cfl": 0.4,
+    "limiter": "mc"
+  },
+  "runtime": {
+    "backend": "cpu",
+    "precision": "double",
+    "max_iterations": 10000,
+    "end_time": 0.2,
+    "residual_tolerance": 0
+  },
+  "output": {
+    "interval": 20
+  }
+}

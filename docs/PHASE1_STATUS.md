@@ -12,7 +12,7 @@ See [environment.md](environment.md). Project-local CUDA 12.8.93 installed; SM12
 - [x] M3 2D finite volumes
 - [x] M4 Axisymmetric nozzle
 - [x] M5 Viscous Navier–Stokes
-- [ ] M6 Engineering analysis / output
+- [x] M6 Engineering analysis / output
 - [ ] M7 Interactive GUI
 - [ ] M8 Performance
 - [ ] M9 Final verification
@@ -23,7 +23,7 @@ GitHub CLI has no authenticated host; remote creation deferred. Local developmen
 
 ## Latest validation
 
-M5 complete Release CUDA suite: 7/7 CTest entries pass. Compressible Couette 4x24 to t=15: velocity L1 5.14813e-5, temperature L1 4.46196e-5. Viscous nozzle remains physical for 1,000 steps without reconstruction fallback. Viscous FP64 max CPU/GPU difference 3.9968e-15; FP32 4.26173e-6. Earlier scientific gates remain green.
+M6 Release CPU/CUDA full suites pass. Real 128x32 viscous rocket CLI runs completed 300 steps on CPU FP64 and GPU FP32. Strict configuration parsing/roundtrip, dimensional scaling and annular engineering integrals pass. Both runs pass independent standard-library JSON/CSV/VTK structural and physical-field checks. GPU example: mass flow 0.09681747 kg/s, exit Mach 2.30520, estimated thrust 172.67063 N. These are iteration-limited transient runs, not convergence claims.
 
 ## Execution plan
 

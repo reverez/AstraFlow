@@ -1,0 +1,35 @@
+{
+  "problem": "viscous_channel",
+  "gas": {
+    "gamma": 1.4,
+    "gas_constant": 1,
+    "viscosity": 0.05,
+    "prandtl": 0.72
+  },
+  "geometry": {
+    "length": 1,
+    "height": 1
+  },
+  "mesh": {
+    "nx": 4,
+    "nr": 24
+  },
+  "boundary_conditions": {
+    "P0": 1,
+    "T0": 1,
+    "back_pressure": 1,
+    "wall": "no_slip",
+    "wall_temperature": 1,
+    "upper_wall_speed": 1
+  },
+  "runtime": {
+    "backend": "cpu",
+    "precision": "double",
+    "max_iterations": 20000,
+    "end_time": 15,
+    "residual_tolerance": 0
+  },
+  "output": {
+    "interval": 100
+  }
+}

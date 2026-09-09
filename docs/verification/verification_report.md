@@ -48,3 +48,9 @@ The nozzle's small wall slopes make quasi-1D theory a useful approximation. Thes
 The canonical case is exact steady compressible Couette flow with constant viscosity, periodic x, stationary lower wall, upper-wall U=1, and equal isothermal wall temperatures Tw=1. With H=1, R=1, gamma=1.4, mu=0.05, Pr=0.72, the analytical solution is u=y, v=0, T=1+mu y(1-y)/(2k), constant pressure and rho=p/(R T). Heat conduction balances viscous heating. This tests the full compressible energy equation, not an incompressible substitute.
 
 The 4x24 grid starts from u=0.8y, T=1 and evolves to t=15 (9,924 steps). L1 velocity error is 5.14813e-5 (bound 0.002); L1 temperature error is 4.46196e-5 (bound 0.001). A 48x12 adiabatic no-slip nozzle remains physical for 1,000 steps to t=3.553 with no reconstruction fallback. On a 32x8 viscous nozzle after 100 steps, maximum conservative CPU/GPU differences are 3.9968e-15 (FP64) and 4.26173e-6 (FP32), within unchanged 1e-10/5e-5 bounds. All seven CTest entries pass.
+
+## M6 production workflow
+
+Strict JSON parsing and roundtrip, dimensional scaling/restoration and uniform analytical exit-area/mass-flow/thrust/Isp integration pass unit tests. Actual 128x32 viscous rocket runs completed 300 steps on CPU FP64 and CUDA FP32. The CUDA run produced mdot=0.0968174695 kg/s, exit Mach=2.30519878, exit p=154822.8336 Pa and idealised thrust=172.6706309 N. Its mass-flow inlet/exit mismatch was 0.00312177. These are transient iteration-limit outputs, not steady convergence or experimental validation.
+
+`scripts/check_run.py` independently parsed both runs' VTK XML and JSON/CSV, checked grid/array lengths, finite positive fields, last iteration consistency, and the thrust/Isp identity. All checks passed. No Python packages were installed.

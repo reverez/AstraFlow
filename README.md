@@ -2,7 +2,7 @@
 
 AstraFlow is being implemented as a GPU-accelerated axisymmetric compressible CFD simulator for rocket nozzle flows, using C++20 and CUDA, with a CPU reference backend.
 
-**Development status:** Milestone 0; no CFD solver or scientific verification is complete yet. See [Phase 1 status](docs/PHASE1_STATUS.md).
+**Development status:** Milestones 0–6 complete: verified CPU/CUDA Euler and axisymmetric viscous finite volumes, CLI, engineering analysis and reproducible output. GUI/performance/final review remain in progress. See [Phase 1 status](docs/PHASE1_STATUS.md).
 
 ## Build
 
@@ -31,3 +31,13 @@ The planned V1 model is a single-species, calorically perfect ideal gas with con
 Combustion, turbulence, external plumes and advanced thermodynamics are outside V1.
 
 MIT license. CUDA remains subject to NVIDIA's license.
+
+## Run a case
+
+```sh
+./build/astraflow_cli --config examples/rocket_nozzle/config.json --backend cuda
+./build-cpu/astraflow_cli --config examples/sod/config.json --backend cpu
+python3 scripts/check_run.py runs/<run-id>
+```
+
+Examples cover Sod, an inviscid isentropic nozzle, compressible Couette channel and a viscous ideal-gas rocket nozzle. `--output`, `--max-iterations` and `--precision float|double` override configuration values. Generated output directories are ignored and existing nonempty directories are protected.

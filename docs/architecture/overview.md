@@ -6,4 +6,8 @@ The reusable `astraflow` library is linked by applications and Catch2 verificati
 
 GPU stages are named primitive/CFL conversion, reconstruction/flux, residual assembly and RK update. CUB supplies the global minimum timestep reduction with preallocated scratch. Invalid-state indices and fallback counters cross the host boundary as diagnostics. The conservative fields remain on the device throughout integration; explicit snapshots copy them to the host.
 
-CPU-only CI disables CUDA and runs small unit/verification suites. GPU checks require the local hardware and are separate CTest entries. Graphical and multidimensional components will be added at their specified milestone gates.
+CPU-only CI disables CUDA and runs small unit/verification suites. GPU checks require the local hardware and are separate CTest entries. `geometry` owns structured meshes; `numerics/finite_volume.hpp` shares boundary reconstruction, central transport gradients, face fluxes, source and CFL evaluation. CPU and CUDA 2D backends own scheduling and memory, with a common `Solver` interface.
+
+`Config` strictly parses known JSON keys and rejects invalid settings. `Simulation` builds and scales a case, chooses a backend and restores physical units for snapshots. CLI and the upcoming GUI share this application-independent orchestration. `analysis` computes engineering integrals from physical snapshots; `io` writes VTK directly without VTK libraries.
+
+Each run stores config.json, convergence.csv, performance.json, summary.json, mesh.vts and final_state.vts. Explicit output paths must be empty, preventing accidental overwrite. Default paths use a unique timestamp under ignored runs/. The summary distinguishes convergence, end-time and iteration-limit termination. Residuals are RMS time derivatives in nondimensional solver units; times/fields/engineering results use configuration units (SI in rocket examples).
