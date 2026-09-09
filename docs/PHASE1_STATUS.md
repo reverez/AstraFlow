@@ -7,7 +7,7 @@ See [environment.md](environment.md). Project-local CUDA 12.8.93 installed; SM12
 ## Milestones
 
 - [x] M0 Repository / Toolchain
-- [ ] M1 CPU Euler
+- [x] M1 CPU Euler
 - [ ] M2 CUDA Euler
 - [ ] M3 2D finite volumes
 - [ ] M4 Axisymmetric nozzle
@@ -23,7 +23,7 @@ GitHub CLI has no authenticated host; remote creation deferred. Local developmen
 
 ## Latest validation
 
-Release CPU and CUDA configure/build passed; both CTest suites passed (2 smoke tests each). RTX 5070 Laptop GPU, CC 12.0, 8,518,041,600 bytes, runtime 12080; device kernel reported sm_120. No scientific claims yet.
+M1 Release CPU: 3 CTest entries passed; 296 unit assertions and 407 Sod assertions. Sod nx=400, t=0.2: L1 density 0.00144607, axial velocity 0.00254609, pressure 0.000890535; mass error 3.33067e-15. No reconstruction corrections. Uniform state preserved. M0 native SM120 runtime gate passed previously.
 
 ## Execution plan
 

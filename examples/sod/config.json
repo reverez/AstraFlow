@@ -1,0 +1,1 @@
+{"problem":"sod","gas":{"gamma":1.4,"gas_constant":1},"mesh":{"nx":400},"numerics":{"cfl":0.4,"limiter":"mc"},"runtime":{"end_time":0.2}}
