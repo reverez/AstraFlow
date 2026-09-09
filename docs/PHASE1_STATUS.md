@@ -9,7 +9,7 @@ See [environment.md](environment.md). Project-local CUDA 12.8.93 installed; SM12
 - [x] M0 Repository / Toolchain
 - [x] M1 CPU Euler
 - [x] M2 CUDA Euler
-- [ ] M3 2D finite volumes
+- [x] M3 2D finite volumes
 - [ ] M4 Axisymmetric nozzle
 - [ ] M5 Viscous Navier–Stokes
 - [ ] M6 Engineering analysis / output
@@ -23,7 +23,7 @@ GitHub CLI has no authenticated host; remote creation deferred. Local developmen
 
 ## Latest validation
 
-M2 Release CUDA: all five CTest entries pass. GPU Sod/uniform and CPU/GPU parity pass in FP32/FP64 (4,008 assertions). FP32 max/L1/L2 differences: 4.61936e-6 / 2.49782e-7 / 5.32646e-7. FP64: 4.21885e-14 / 7.72314e-16 / 3.19405e-15. Matching contraction settings fixed the initially failed FP32 parity without changing tolerances. Native SM120 device probe passes.
+M3 Release CPU/CUDA builds and complete milestone CTest suites pass. Rectangular mesh validity/face closure, 2D periodic uniform preservation, conservative density-wave evolution and FP64 parity pass. All four integrated conserved quantities drift by less than 1e-12. Earlier Euler gates remain green.
 
 ## Execution plan
 

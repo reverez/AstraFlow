@@ -25,3 +25,7 @@ Both precisions pass the same exact-Sod bounds and uniform-state checks. At 400 
 | FP64 | 4.21885e-14 | 7.72314e-16 | 3.19405e-15 |
 
 Norms cover all four conservative fields, nondimensional. The initial FP32 maximum 6.10352e-5 exceeded the preset 5e-5 bound. A controlled build with CPU `-ffp-contract=off` and CUDA `--fmad=false` reduced that discrepancy; this matched-rounding baseline is retained. No tolerance was loosened. GPU checks contain 4,008 passing assertions. This does not yet verify a multidimensional solver.
+
+## M3 2D finite volumes
+
+Rectangular cell volumes sum to the domain volume; outward face vectors close within 1e-14. Invalid dimensions/volumes are rejected. CPU and GPU uniform periodic flow (16x8, 20 steps) preserves every conservative component within 1e-13. A nonuniform periodic density wave (32x16, 30 steps) preserves all four integrated conserved quantities within 1e-12 and passes the preset FP64 parity bound 2e-11. Both complete Release CTest configurations pass, including prior 1D checks.
