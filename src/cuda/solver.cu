@@ -18,20 +18,23 @@ __global__ void fv_primitives(View<T> u, View<T> w, T *dt, const Cell *cells, co
     dt[i] = fv_timestep(p, cells[i], faces, s);
 }
 template <class T>
-__global__ void fv_gradients(View<T> w, View<T> sx, View<T> sr, const Cell *c, const Face *f,
-                             Settings s) {
+__global__ void fv_gradients(View<T> w, View<T> sx, View<T> sr, View<T> gx, View<T> gr,
+                             const Cell *c, const Face *f, Settings s) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i < w.size)
+    if (i < w.size) {
         slopes(i, w, sx, sr, c, f, s);
+        if (s.gas.viscosity > 0)
+            transport_gradients(i, w, gx, gr, c, f, s);
+    }
 }
 template <class T>
-__global__ void fv_faces(View<T> w, View<T> sx, View<T> sr, View<T> flux, const Face *f, Settings s,
-                         unsigned long long *counts) {
+__global__ void fv_faces(View<T> w, View<T> sx, View<T> sr, View<T> gx, View<T> gr, View<T> flux,
+                         const Cell *c, const Face *f, Settings s, unsigned long long *counts) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= flux.size)
         return;
     bool corrected = false;
-    auto q = fv_flux(i, w, sx, sr, f, s, corrected);
+    auto q = fv_flux(i, w, sx, sr, gx, gr, c, f, s, corrected);
     flux.set(i, q.value);
     if (q.fallback)
         atomicAdd(counts, 1ULL);
@@ -39,10 +42,11 @@ __global__ void fv_faces(View<T> w, View<T> sx, View<T> sr, View<T> flux, const 
         atomicAdd(counts + 1, 1ULL);
 }
 template <class T>
-__global__ void fv_assemble(View<T> f, View<T> res, View<T> w, const Cell *c, const Face *faces) {
+__global__ void fv_assemble(View<T> f, View<T> res, View<T> w, View<T> gx, View<T> gr,
+                            const Cell *c, const Face *faces, Settings s) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < res.size)
-        res.set(i, fv_residual(i, f, w, c, faces));
+        res.set(i, fv_residual(i, f, w, gx, gr, c, faces, s));
 }
 template <class T>
 __global__ void fv_rk(View<T> base, View<T> from, View<T> out, View<T> res, T dt, bool second,
@@ -66,7 +70,7 @@ template <class T> class GpuSolver final : public Solver {
     StepStats stats_;
     cuda::Buffer<Cell> cells_;
     cuda::Buffer<Face> faces_;
-    cuda::Buffer<T> u_, w_, sx_, sr_, stage_, res_, flux_, dt_, minimum_, squares_, sums_;
+    cuda::Buffer<T> u_, w_, sx_, sr_, gx_, gr_, stage_, res_, flux_, dt_, minimum_, squares_, sums_;
     cuda::Buffer<int> bad_{1};
     cuda::Buffer<unsigned long long> counts_{2};
     std::unique_ptr<cuda::Buffer<unsigned char>> scratch_;
@@ -86,14 +90,15 @@ template <class T> class GpuSolver final : public Solver {
         AF_CUDA(cudaGetLastError());
     }
     void rhs() {
-        fv_gradients<<<blocks_, block_size>>>(view(w_), view(sx_), view(sr_), cells_.data(),
-                                              faces_.data(), s_);
+        fv_gradients<<<blocks_, block_size>>>(view(w_), view(sx_), view(sr_), view(gx_), view(gr_),
+                                              cells_.data(), faces_.data(), s_);
         AF_CUDA(cudaGetLastError());
         fv_faces<<<(nf_ + block_size - 1) / block_size, block_size>>>(
-            view(w_), view(sx_), view(sr_), view(flux_, nf_), faces_.data(), s_, counts_.data());
+            view(w_), view(sx_), view(sr_), view(gx_), view(gr_), view(flux_, nf_), cells_.data(),
+            faces_.data(), s_, counts_.data());
         AF_CUDA(cudaGetLastError());
-        fv_assemble<<<blocks_, block_size>>>(view(flux_, nf_), view(res_), view(w_), cells_.data(),
-                                             faces_.data());
+        fv_assemble<<<blocks_, block_size>>>(view(flux_, nf_), view(res_), view(w_), view(gx_),
+                                             view(gr_), cells_.data(), faces_.data(), s_);
         AF_CUDA(cudaGetLastError());
     }
 
@@ -101,8 +106,8 @@ template <class T> class GpuSolver final : public Solver {
     GpuSolver(const Mesh &m, Settings s)
         : s_(s), n_(int(m.cells.size())), nf_(int(m.faces.size())),
           blocks_((n_ + block_size - 1) / block_size), cells_(n_), faces_(nf_), u_(4 * n_),
-          w_(4 * n_), sx_(4 * n_), sr_(4 * n_), stage_(4 * n_), res_(4 * n_), flux_(4 * nf_),
-          dt_(n_), minimum_(1), squares_(4 * n_), sums_(4) {
+          w_(4 * n_), sx_(4 * n_), sr_(4 * n_), gx_(4 * n_), gr_(4 * n_), stage_(4 * n_),
+          res_(4 * n_), flux_(4 * nf_), dt_(n_), minimum_(1), squares_(4 * n_), sums_(4) {
         cells_.upload(m.cells.data());
         faces_.upload(m.faces.data());
         std::size_t min_bytes = 0, sum_bytes = 0;
@@ -131,7 +136,7 @@ template <class T> class GpuSolver final : public Solver {
         counts_.zero();
         stats_ = {};
         stats_.device_bytes = cells_.bytes() + faces_.bytes() +
-                              (29 * n_ + 4 * nf_ + 5) * sizeof(T) + bad_.bytes() + counts_.bytes() +
+                              (37 * n_ + 4 * nf_ + 5) * sizeof(T) + bad_.bytes() + counts_.bytes() +
                               bytes_;
         ready_ = true;
     }

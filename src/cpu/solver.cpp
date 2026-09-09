@@ -9,7 +9,7 @@ template <class T> class CpuSolver final : public Solver {
     Settings settings_;
     int n_, nf_;
     bool ready_ = false;
-    std::vector<T> u_, w_, sx_, sr_, stage_, res_, flux_;
+    std::vector<T> u_, w_, sx_, sr_, gx_, gr_, stage_, res_, flux_;
     StepStats stats_;
     View<T> view(std::vector<T> &v, int n = 0) { return {v.data(), n ? n : n_}; }
     void convert(std::vector<T> &source) {
@@ -24,24 +24,31 @@ template <class T> class CpuSolver final : public Solver {
     }
     void rhs() {
         auto w = view(w_), sx = view(sx_), sr = view(sr_), flux = view(flux_, nf_),
-             res = view(res_);
+             res = view(res_), gx = view(gx_), gr = view(gr_);
         for (int i = 0; i < n_; ++i)
             slopes(i, w, sx, sr, mesh_.cells.data(), mesh_.faces.data(), settings_);
+        if (settings_.gas.viscosity > 0)
+            for (int i = 0; i < n_; ++i)
+                transport_gradients(i, w, gx, gr, mesh_.cells.data(), mesh_.faces.data(),
+                                    settings_);
         for (int i = 0; i < nf_; ++i) {
             bool corrected = false;
-            auto f = fv_flux(i, w, sx, sr, mesh_.faces.data(), settings_, corrected);
+            auto f = fv_flux(i, w, sx, sr, gx, gr, mesh_.cells.data(), mesh_.faces.data(),
+                             settings_, corrected);
             flux.set(i, f.value);
             stats_.flux_fallbacks += f.fallback;
             stats_.reconstruction_fallbacks += corrected;
         }
         for (int i = 0; i < n_; ++i)
-            res.set(i, fv_residual(i, flux, w, mesh_.cells.data(), mesh_.faces.data()));
+            res.set(i, fv_residual(i, flux, w, gx, gr, mesh_.cells.data(), mesh_.faces.data(),
+                                   settings_));
     }
 
   public:
     CpuSolver(const Mesh &m, Settings s)
         : mesh_(m), settings_(s), n_(int(m.cells.size())), nf_(int(m.faces.size())), u_(4 * n_),
-          w_(4 * n_), sx_(4 * n_), sr_(4 * n_), stage_(4 * n_), res_(4 * n_), flux_(4 * nf_) {}
+          w_(4 * n_), sx_(4 * n_), sr_(4 * n_), gx_(4 * n_), gr_(4 * n_), stage_(4 * n_),
+          res_(4 * n_), flux_(4 * nf_) {}
     void initialize(const std::vector<State<double>> &w) override {
         if (w.size() != std::size_t(n_))
             throw std::invalid_argument("FV initial state size mismatch");

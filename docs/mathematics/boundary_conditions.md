@@ -8,4 +8,4 @@ Boundary functions are shared by CPU and CUDA. Every RK stage updates boundary s
 - Outlet: for axial Mach >=1, extrapolate the outgoing primitive state. For subsonic flow prescribe static back pressure, retain entropy p/rho^gamma and J+=u+2a/(gamma-1), and derive density and axial velocity. Radial velocity is extrapolated.
 - Periodic Cartesian verification meshes connect opposite cells; paired boundary-face fluxes use the same states, preserving conservation.
 
-The 1D Euler reference uses transmissive boundaries with zero end-cell slopes. Viscous wall treatment is added at M5.
+The 1D Euler reference uses transmissive boundaries with zero end-cell slopes. Viscous nozzle walls reflect both velocity components about the stationary wall velocity (no slip); density/pressure reflect evenly. The heat gradient is projected tangentially at adiabatic walls so its normal flux is exactly zero, including sloping faces. Verification additionally supports moving Cartesian upper walls and prescribed wall temperature: ghost velocity and temperature reflect about their specified face values. Production nozzle examples use stationary, adiabatic walls.

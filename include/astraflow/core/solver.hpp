@@ -11,6 +11,7 @@ struct Settings {
     Limiter limiter = Limiter::MC;
     bool no_slip = false;
     double p0 = 1, t0 = 1, back_pressure = 0.1;
+    double wall_temperature = 0, upper_wall_speed = 0;
 };
 struct StepStats {
     int iterations = 0;

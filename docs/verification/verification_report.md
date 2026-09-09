@@ -42,3 +42,9 @@ The default smooth contour has chamber/throat/exit radii 0.2/0.15/0.225 and cham
 | Stationary pressure state max drift, 50 steps | 2.22045e-15 | 1e-11 |
 
 The nozzle's small wall slopes make quasi-1D theory a useful approximation. These bounds accommodate legitimate multidimensional effects; they do not assert exact quasi-1D behavior for steep contours or shocked flow. Geometry identities, C1 joins, rejected invalid radii, inlet stagnation enthalpy and supersonic outlet extrapolation also pass. The initial stationary-state failure was traced to the 28-step FP64 inlet root solve; increasing the root solve to FP64 precision repaired it without changing the test threshold. GPU parity is checked after 100 nozzle steps on 32x8.
+
+## M5 compressible Navier–Stokes
+
+The canonical case is exact steady compressible Couette flow with constant viscosity, periodic x, stationary lower wall, upper-wall U=1, and equal isothermal wall temperatures Tw=1. With H=1, R=1, gamma=1.4, mu=0.05, Pr=0.72, the analytical solution is u=y, v=0, T=1+mu y(1-y)/(2k), constant pressure and rho=p/(R T). Heat conduction balances viscous heating. This tests the full compressible energy equation, not an incompressible substitute.
+
+The 4x24 grid starts from u=0.8y, T=1 and evolves to t=15 (9,924 steps). L1 velocity error is 5.14813e-5 (bound 0.002); L1 temperature error is 4.46196e-5 (bound 0.001). A 48x12 adiabatic no-slip nozzle remains physical for 1,000 steps to t=3.553 with no reconstruction fallback. On a 32x8 viscous nozzle after 100 steps, maximum conservative CPU/GPU differences are 3.9968e-15 (FP64) and 4.26173e-6 (FP32), within unchanged 1e-10/5e-5 bounds. All seven CTest entries pass.

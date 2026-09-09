@@ -7,3 +7,9 @@ Face states are rotated into normal/tangential coordinates for HLLC. Davis minim
 SSP-RK2 computes U1=U+dt L(U), then Unew=(U+U1+dt L(U1))/2. The 1D timestep is CFL*dx/max(|u|+a), capped by requested end time; CFL must be <=0.5. Every stage is checked for finite, positive density, pressure and temperature. Invalid stages throw with cell and iteration context. Fluxes are stored once per face, ensuring cancellation between neighbouring cells.
 
 The exact Sod reference independently solves the pressure wave-curve equation by 100 bisections and samples analytical shock, contact and rarefaction regions. The reference is test-only. At shocks, second-order global convergence is not expected.
+
+## Viscous discretisation
+
+Constant dynamic viscosity is the guaranteed model. k=mu cp/Pr with cp=gamma R/(gamma-1). Central logical-coordinate gradients of velocity and temperature are mapped to physical coordinates: d/dr=(logical radial difference)/dr and d/dx=(logical axial difference)/dx-skew*d/dr. Face gradients average adjacent gradients, then correct along the centre-to-centre vector to reproduce the actual primitive jump. This correction controls nonorthogonal-grid diffusion and gives a consistent wall-normal derivative from mirrored ghost states.
+
+The explicit limit includes D=max(4mu/(3rho),mu gamma/(Pr rho)), accounting for momentum diffusion and energy/temperature diffusion. A conservative diffusion limit dt_v=0.5 CFL/[D(1/dx²+(2+skew²)/dr²)] combines harmonically with the convective limit. The additional radial factor bounds cylindrical curvature and keeps the baseline conservative. No implicit viscous solve is used.

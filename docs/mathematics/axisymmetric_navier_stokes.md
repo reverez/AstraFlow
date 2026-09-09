@@ -15,4 +15,6 @@ These formulas integrate the piecewise-linear mesh exactly. They obey sum A n_x=
 
 Logical-coordinate MUSCL slopes reconstruct to the corresponding face; cell-centre radial positions are arithmetic interpolation points. A 50-step stationary-pressure test checks the full flux/source cancellation, not just the mesh identities.
 
-The viscous extension will add the azimuthal normal-stress source at M5.
+With viscosity, use div(u)=u_x+v_r+v/r; tau_xx=2 mu u_x-(2/3)mu div(u), tau_rr=2 mu v_r-(2/3)mu div(u), tau_xr=mu(u_r+v_x), and tau_theta_theta=2 mu v/r-(2/3)mu div(u). The radial source becomes (p-tau_theta_theta) B/V. The conservative face flux is convective flux minus viscous flux. Its momentum components are tau dot n; its energy component is velocity dot (tau dot n) + k grad(T) dot n.
+
+At r=0 the face evaluation uses the regular odd-velocity limit v/r -> v_r, while the zero face area removes its integrated flux. Cell sources evaluate v/r only at positive cell centres. Cartesian tests explicitly omit cylindrical hoop terms.
