@@ -14,27 +14,11 @@ Numerical results are accepted only after comparison against analytical solution
 
 ## Status
 
-**Phase 1 / V1 is under active development.**
+**Phase 1 / V1 implementation and local verification are complete.**
 
-Milestones **0–6 are complete**, including:
+Milestones **0–9 are complete**, including verified CPU/CUDA Euler and axisymmetric Navier–Stokes solvers, engineering analysis, reproducible CLI output, the interactive GUI, CUDA profiling/optimisation, grid refinement and final acceptance tests.
 
-- verified 1D CPU Euler solver;
-- CUDA Euler backend;
-- 2D conservative finite-volume infrastructure;
-- axisymmetric rocket-nozzle formulation;
-- viscous compressible Navier–Stokes transport;
-- CPU/CUDA numerical parity;
-- engineering analysis;
-- headless CLI simulation;
-- JSON, CSV, and VTK output.
-
-Remaining work consists primarily of:
-
-- interactive GUI completion;
-- CUDA profiling and optimisation;
-- grid-refinement verification;
-- final CPU/GPU benchmarking;
-- V1 acceptance review.
+Final checks passed: Release CPU **6/6**, Release CUDA **8/8**, CPU AddressSanitizer/UndefinedBehaviorSanitizer with leak detection **6/6**, both 3,000-step rocket workflows, independent output validation and actual WSLg GUI smoke/capture. The project is ready for architectural review.
 
 See [`docs/PHASE1_STATUS.md`](docs/PHASE1_STATUS.md).
 
@@ -42,17 +26,13 @@ See [`docs/PHASE1_STATUS.md`](docs/PHASE1_STATUS.md).
 
 ## Preview
 
-<!-- Replace these placeholders as Phase 1 is completed. -->
+<!-- Further standalone field and scaling figures may be added later. -->
 
 ### Interactive Simulation
 
-<!--
-<p align="center">
-  <img src="docs/assets/gui-overview.png" width="100%" alt="AstraFlow interactive CFD interface">
-</p>
--->
+![Actual AstraFlow interface on WSLg](docs/screenshots/astraflow.png)
 
-> **Image pending:** interactive nozzle simulation, convergence history, engineering analysis, and CUDA telemetry.
+This is an actual framebuffer capture with nozzle flow, live residual history, engineering results and CUDA telemetry. Radial display magnification is labelled and does not modify physical geometry.
 
 ### Mach Field
 
@@ -604,19 +584,21 @@ CPU/GPU parity:
 
 ---
 
-## Remaining V1 Verification
+## Final V1 Verification
 
-Before V1 acceptance:
+| Check | Result |
+|---|---:|
+| Smooth entropy-wave refinement, CPU FP64 | L1 orders 1.81 and 2.00 |
+| Couette temperature refinement, CPU FP64 | L1 orders 2.00 and 2.00 |
+| Nozzle recovery from 20% slower initial flow | Throat Mach 0.803 → 0.997 |
+| Long-time Couette CUDA FP32 | Velocity L1 5.94e-5; temperature L1 3.44e-5 |
+| Release CPU / CUDA CTest | 6/6 and 8/8 passed |
+| CPU ASan / UBSan / leak detection | 6/6 passed |
+| WSLg GUI controls and real rendering | Passed scripted smoke/capture |
 
-- grid-refinement analysis;
-- final Release CPU regression;
-- final Release CUDA regression;
-- full rocket-nozzle CPU/CUDA comparison;
-- CUDA memory/error diagnostics;
-- GUI acceptance;
-- final performance profiling.
+Both 128x32 rocket CLI runs completed 3,000 steps with valid JSON/CSV/VTK output and zero flux/reconstruction fallbacks. CUDA FP32 estimated mass flow 0.09661684 kg/s, thrust 171.05877 N and inlet/exit mass-flow mismatch 0.04655%. These runs stopped at the iteration limit, not the 1e-6 residual target; their outputs are transient ideal-gas estimates.
 
-Formal convergence claims will not be made until the grid-refinement study is complete.
+See the [verification report](docs/verification/verification_report.md) for analytical definitions, preset bounds, precision comparisons, grid tables and the reproducible sanitizer command. Grid refinement verifies the canonical cases; it does not establish grid independence of the coarse rocket example. Compute-sanitizer and Nsight were unavailable, so no passes from those tools are claimed.
 
 ---
 
@@ -700,7 +682,7 @@ runs/<run-id>/
 | `mesh.vts` | structured computational mesh |
 | `final_state.vts` | final CFD state |
 
-VTK StructuredGrid output permits independent inspection in software such as ParaView.
+VTK StructuredGrid output permits independent inspection in software such as ParaView. Explicit output paths must be new or empty. `scripts/check_run.py` validates the JSON/CSV/VTK output using only Python's standard library. Residuals are RMS time derivatives in nondimensional solver units; fields, times and engineering results use physical configuration units (SI in the rocket example). Each run explicitly distinguishes convergence, end-time and iteration-limit termination.
 
 ---
 
@@ -711,10 +693,12 @@ VTK StructuredGrid output permits independent inspection in software such as Par
 Example:
 
 ```bash
-astraflow_cli \
+./build/astraflow_cli \
     --config examples/rocket_nozzle/config.json \
     --backend cuda
 ```
+
+`--output runs/my-rocket`, `--max-iterations 3000` and `--precision float|double` override configuration values. Examples cover [Sod](examples/sod/config.json), an [isentropic nozzle](examples/isentropic_nozzle/config.json), a [viscous Couette channel](examples/viscous_channel/config.json) and a [viscous rocket nozzle](examples/rocket_nozzle/config.json).
 
 Supported solver backends:
 
@@ -782,44 +766,28 @@ Additional panels expose:
 - CUDA device information;
 - iteration performance.
 
-Simulation execution is isolated from interface rendering through a worker/state architecture.
+Simulation execution is isolated from interface rendering through a worker/state architecture. Immutable snapshots retain their own gas properties and remain valid across reset. Pause before applying geometry changes. Mouse-wheel zoom and middle-button pan change only the view.
+
+Actual WSLg startup, OpenGL rendering, all nine fields, Run/Pause/Step/Reset/Regenerate and residual/engineering updates passed `--smoke-test --capture runs/gui.ppm`. This is scripted control-handler testing and inspected framebuffer output, not manual mouse testing.
 
 ---
 
 # Performance Study
 
-The final V1 profiling pass will evaluate representative mesh sizes such as:
+Release measurements compare equal FP32 on the RTX 5070 Laptop GPU and a single-thread CPU reference on an Intel Core Ultra 9 285H. Each grid uses 20 warmup iterations and 50 measured iterations; setup and output are excluded.
 
-```text
-128 × 32
-256 × 64
-512 × 128
-1024 × 256
-```
+| Grid | CPU ms/iteration | GPU ms/iteration | CPU/GPU | Device MiB |
+|---|---:|---:|---:|---:|
+| 128 × 32 | 1.448 | 0.539 | 2.69x | 1.54 |
+| 256 × 64 | 6.194 | 0.512 | 12.11x | 6.10 |
+| 512 × 128 | 28.222 | 0.619 | 45.56x | 24.32 |
+| 1024 × 256 | 121.539 | 1.987 | 61.16x | 97.11 |
 
-subject to practical memory and runtime constraints.
+These are measured sample means, not guaranteed speedups or comparisons against a tuned multicore CPU solver. Small problems can be CPU-faster: the earlier 400-cell 1D case was slower on GPU. Laptop clock/load variation also affected the before/after measurements.
 
-Metrics include:
+CUDA-event profiling identified diagnostic reductions/transfers as the largest measured stage. A single four-component CUB reduction removed three reduction calls and the residual-square buffer. The measured diagnostic interval at 512x128 fell from 0.306395 to 0.184032 ms, and numerical parity still passes. Instrumentation adds overhead; uninstrumented iteration times are reported above. Buffer counts exclude driver/context and OpenGL resources.
 
-| Metric | Purpose |
-|---|---|
-| Cell count | problem scale |
-| CPU iteration time | reference performance |
-| CUDA iteration time | GPU performance |
-| Iterations/s | solver throughput |
-| CPU/GPU speedup | acceleration |
-| GPU memory | memory scaling |
-| Kernel timings | profiling |
-
-No minimum CUDA speedup is assumed in advance.
-
-Small meshes may remain CPU-faster because GPU launch and synchronisation overhead can dominate limited parallel work. Final claims will use measured scaling data only.
-
-<!--
-<p align="center">
-  <img src="docs/assets/cpu-gpu-scaling.png" width="90%" alt="CPU versus CUDA scaling">
-</p>
--->
+Full methodology, limitations, raw before/after measurements and reproduction commands are in the [benchmark report](docs/performance/benchmark_report.md). Enable the benchmark executable with `-DASTRAFLOW_BUILD_BENCHMARKS=ON`.
 
 ---
 
@@ -833,7 +801,7 @@ Ninja
 C++20-compatible compiler
 ```
 
-CUDA builds additionally require an NVIDIA CUDA toolchain compatible with the configured device architecture.
+CUDA builds require CUDA 12.8+ with native SM120 support. Tested with GCC 13.3, CMake 3.28.3 and CUDA 12.8.93 on Ubuntu 24.04 / WSL2. CMake downloads pinned dependencies at first configure. No global Python packages are needed.
 
 Primary development target:
 
@@ -869,6 +837,32 @@ cmake \
 cmake --build build
 ```
 
+## Project-local CUDA and GUI
+
+If CUDA is not already installed, the bootstrap downloads SHA256-checked compiler/runtime/CCCL packages into this project only:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python scripts/bootstrap_cuda.py
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_CUDA_COMPILER="$PWD/.toolchains/cuda-12.8.1/bin/nvcc" \
+    -DASTRAFLOW_ENABLE_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120
+cmake --build build -j 6
+./build/astraflow_cli --device-info
+```
+
+The device probe executes a kernel and reports its compiled architecture. Agent sandbox restrictions may require GPU execution outside the sandbox.
+
+```bash
+# Ubuntu 24.04 only, if GUI development headers are missing:
+bash scripts/bootstrap_gui.sh
+cmake -S . -B build -DASTRAFLOW_BUILD_GUI=ON
+cmake --build build -j 6
+./build/astraflow_gui --config examples/rocket_nozzle/config.json
+```
+
+The GUI bootstrap extracts development headers/libraries project-locally and reuses the system OpenGL/X11 runtime. `ASTRAFLOW_BUILD_TESTS` defaults ON; GUI and benchmarks default OFF. CPU-only GitHub Actions are configured; GPU verification runs locally on the target hardware.
+
 ## Tests
 
 ```bash
@@ -903,10 +897,15 @@ ctest \
 | Scientific output | JSON / CSV / VTK StructuredGrid |
 | CI | GitHub Actions |
 
-Current pinned core dependencies include:
+Pinned dependencies:
 
-- `nlohmann/json 3.11.3`;
-- `Catch2 3.7.1`.
+- `nlohmann/json 3.11.3` (MIT);
+- `Catch2 3.7.1` (BSL-1.0);
+- `Dear ImGui 1.91.8` (MIT);
+- `ImPlot 0.16` (MIT);
+- `GLFW 3.4` (zlib/libpng).
+
+Their upstream license files remain in fetched sources. Auxiliary Python scripts use only the standard library.
 
 ---
 
@@ -956,6 +955,8 @@ CLI / GUI
 
 **Numerical physics is not implemented inside GUI code.**
 
+See the [architecture overview](docs/architecture/overview.md), [governing equations](docs/mathematics/governing_equations.md), [numerical method](docs/mathematics/numerical_method.md), [axisymmetric formulation](docs/mathematics/axisymmetric_navier_stokes.md), [boundary conditions](docs/mathematics/boundary_conditions.md) and [environment record](docs/environment.md).
+
 ---
 
 # Development Milestones
@@ -969,9 +970,9 @@ CLI / GUI
 | M4 | Axisymmetric nozzle solver | Complete |
 | M5 | Viscous compressible Navier–Stokes | Complete |
 | M6 | Engineering analysis, CLI and output | Complete |
-| M7 | Interactive GUI | In progress |
-| M8 | CUDA profiling and optimisation | Pending |
-| M9 | Final V1 acceptance | Pending |
+| M7 | Interactive GUI | Complete |
+| M8 | CUDA profiling and optimisation | Complete |
+| M9 | Final implementation verification | Complete |
 
 ---
 

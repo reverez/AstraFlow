@@ -2,7 +2,7 @@
 
 ## Release 2D viscous nozzle, equal FP32
 
-Hardware: NVIDIA GeForce RTX 5070 Laptop GPU, CC 12.0, native SM120, CUDA 12.8.93. CPU is the single-thread reference backend. Both backends use FP32, the same mesh/state, MC, CFL=0.4 and constant nondimensional viscosity 1e-4 with no-slip walls. Each grid has 20 warmup iterations followed by 50 measured iterations. Setup, final snapshots and file output are excluded. CPU timing is steady-clock time inside step(); GPU iteration timing is a CUDA-event interval spanning kernels and required host synchronization. JSON also records wall time.
+Hardware: NVIDIA GeForce RTX 5070 Laptop GPU, CC 12.0, native SM120, CUDA 12.8.93. CPU: Intel Core Ultra 9 285H (16 logical CPUs visible to WSL); the reference backend uses one thread. Both backends use FP32, the same mesh/state, MC, CFL=0.4 and constant nondimensional viscosity 1e-4 with no-slip walls. Each grid has 20 warmup iterations followed by 50 measured iterations. Setup, final snapshots and file output are excluded. CPU timing is steady-clock time inside step(); GPU iteration timing is a CUDA-event interval spanning kernels and required host synchronization. JSON also records wall time.
 
 | Grid | Cells | CPU ms/iter | GPU ms/iter | GPU iter/s | CPU/GPU | Device MiB |
 |---|---:|---:|---:|---:|---:|---:|

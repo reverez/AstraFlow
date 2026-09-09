@@ -15,19 +15,23 @@ See [environment.md](environment.md). Project-local CUDA 12.8.93 installed; SM12
 - [x] M6 Engineering analysis / output
 - [x] M7 Interactive GUI
 - [x] M8 Performance
-- [ ] M9 Final verification
+- [x] M9 Final verification
 
 ## Current blocker
 
-GitHub CLI has no authenticated host; remote creation deferred. Local development is unblocked.
+None. The user configured origin as git@github.com:reverez/AstraFlow.git; SSH fetch succeeds. Remote README commits were merged without rewriting history, retaining the user's structure and authorship text.
 
 ## Latest validation
 
-M8 all scientific and CUDA parity tests pass after reduction optimization. Equal-FP32 benchmarks cover 128x32 through 1024x256. Largest-grid GPU 1.98721 ms/iteration versus CPU 121.539 ms, measured 61.16x; buffer use 101,831,975 bytes. Diagnostic-stage event interval decreased 0.306395 -> 0.184032 ms at 512x128; smallest-grid sample regressed and is reported honestly. Instrumentation preserves solution exactly. Raw before/after results and methodology recorded in docs/performance/.
+Final Release CPU 6/6 and CUDA 8/8 CTest entries pass. CPU ASan/UBSan with leak detection passes 6/6 outside the tracing sandbox. Entropy-wave refinement orders are 1.81/2.00; Couette temperature orders 2.00/2.00. CUDA long-time Couette passes in both precisions. The perturbed nozzle recovers throat Mach 0.803 -> 0.997.
 
-## Execution plan
+Both 3,000-step 128x32 rocket CLI runs and independent JSON/CSV/VTK validation pass. CUDA FP32 estimates thrust 171.05877 N with 0.04655% inlet/exit mass-flow mismatch; termination is the iteration limit, not steady convergence. Actual WSLg GUI control/rendering smoke and inspected capture pass.
 
-Follow M0–M9 in order; commit only at passed milestone gates, use targeted development tests and one comprehensive final pass. Keep physics/numerics independent of backend and UI. Measure actual errors and performance.
+Equal-FP32 benchmarks cover 128x32 through 1024x256. Largest GPU 1.98721 ms/iteration versus single-thread CPU 121.539 ms, measured 61.16x; device buffers 101,831,975 bytes. Event profiling and raw before/after measurements are in docs/performance/. Nsight and compute-sanitizer were unavailable.
+
+## Completion
+
+M0–M9 gates passed. Development continued at the user-relocated `/home/arnav/dev/projects/portfolio/AstraFlow`; the user commit and old build trees were preserved. Final results are consolidated in the verification and benchmark reports.
 
 ## Deferred
 
