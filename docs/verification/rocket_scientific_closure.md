@@ -38,7 +38,9 @@ For r=2 and monotonic, decreasing, non-roundoff differences, observed order is `
 
 ## Current results
 
-Convergence infrastructure passed all six CPU and eight CUDA Release CTest entries. New rolling-window, drift/range, conservation-limit and termination tests passed. The unchanged 3,000-step demonstration remains `iteration_limit`, `converged=false`, with identical final FP32 residuals to Phase 1. Five independent Python analysis tests pass. Long-run closure and grid acceptance have not yet been established.
+Convergence infrastructure passed all six CPU and eight CUDA Release CTest entries. New rolling-window, drift/range, conservation-limit and termination tests passed. The unchanged 3,000-step demonstration remains `iteration_limit`, `converged=false`, with identical final FP32 residuals to Phase 1. Five independent Python analysis tests pass. The first CUDA FP64 128x32 run independently passed steady closure at **82,480 iterations**, t=0.00404675684 s, wall time 64.6893 s. Its final residuals are [2.57959723e-7, 3.14756034e-8, 1.96636817e-7, 8.55983902e-7], reductions [1857.94, 40158.5, 5976.98, 1959.86]. The accepted window is iterations 80,480–82,480 (101 samples). Maximum engineering relative range is 1.81808e-8 (thrust); mass mismatch is 3.51849e-5 and station spread 4.46829e-4. Both fallback counters remain zero.
+
+The baseline engineering state is mdot=0.0966843853 kg/s, throat Mach=1.00677107, exit Mach=2.21770608, exit pressure=162795.240 Pa, exit temperature=1411.76053 K, thrust=171.007696 N, Isp=180.359341 s. The 150,000-step baseline cap remains in its provenance. Finer-grid runs receive a 250,000-step safety allowance because the measured baseline required 82,480 steps and refinement reduces dt; this changes no convergence criterion. CPU cross-check and grid acceptance are pending.
 
 ## Limitations
 

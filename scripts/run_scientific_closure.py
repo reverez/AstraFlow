@@ -21,8 +21,10 @@ def main():
     p.add_argument('--cli',type=Path,default=ROOT/'build/astraflow_cli')
     p.add_argument('--backend',choices=['cpu','cuda'],default='cuda')
     p.add_argument('--precision',choices=['float','double'],default='double')
+    p.add_argument('--iteration-limit', action='append', default=[], metavar='GRID=COUNT')
     p.add_argument('--grids',nargs='+',default=['128x32','256x64','512x128'])
     args=p.parse_args();root=args.root.resolve();root.mkdir(parents=True,exist_ok=True)
+    limits={key:int(value) for key,value in (item.split('=') for item in args.iteration_limit)}
     base=read_json(args.config);cli=args.cli.resolve();records=[]
     manifest={'schema':1,'backend':args.backend,'precision':args.precision,'runs':records}
     revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
@@ -34,6 +36,7 @@ def main():
             nx,nr=map(int,grid.split('x'))
             config=json.loads(json.dumps(base));config['mesh']={'nx':nx,'nr':nr}
             config['runtime'].update(backend=args.backend,precision=args.precision)
+            if grid in limits: config['runtime']['max_iterations']=limits[grid]
             config['output'].pop('directory',None)
             provenance={'config':config,'cli_sha256':digest(cli)}
             parent=root/grid;parent.mkdir(exist_ok=True)

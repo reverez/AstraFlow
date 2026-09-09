@@ -41,10 +41,10 @@ Only specified Phase 2 features: plume, chemistry, turbulence, advanced thermody
 
 - [x] C0: annotated v1.0.0 preserves ecd0337; development on v1.1-scientific-closure; main unchanged; baseline Release suite passes.
 - [x] C1: convergence monitor, full engineering window, explicit termination/output and dedicated FP64 configuration; CPU 6/6, CUDA 8/8, legacy 3,000-step iteration-limit check and analysis unit tests pass.
-- [ ] C2: 128x32 rocket steady closure.
+- [x] C2: 128x32 CUDA FP64 steady closure at 82,480 iterations, 64.7 s wall; all residual/window/conservation gates pass, zero fallbacks.
 - [ ] C3: independently converged rocket grid study and CPU reference cross-check.
 - [ ] C4: Richardson/GCI analysis where valid.
 - [ ] C5: scientific figures and closure report.
 - [ ] C6: final acceptance pass and branch publication (no merge).
 
-Next: measure baseline FP64 convergence, then refine only after all steady criteria pass. Details and exact criteria are in [rocket_scientific_closure.md](verification/rocket_scientific_closure.md).
+Next: CPU FP64 reference cross-check and systematic refined-grid closure. Details and exact criteria are in [rocket_scientific_closure.md](verification/rocket_scientific_closure.md).
