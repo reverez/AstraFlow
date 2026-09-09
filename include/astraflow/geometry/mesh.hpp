@@ -12,7 +12,7 @@ struct Face {
 };
 struct Cell {
     int faces[4]{}, neighbors[4]{};
-    double x = 0, r = 0, volume = 0, planar_area = 0, dx = 0, dr = 0, skew = 0;
+    double x = 0, r = 0, volume = 0, planar_area = 0, dx = 0, dr = 0, skew = 0, radial_source = 0;
 };
 struct Mesh {
     int nx = 0, nr = 0;

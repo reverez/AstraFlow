@@ -29,3 +29,16 @@ Norms cover all four conservative fields, nondimensional. The initial FP32 maxim
 ## M3 2D finite volumes
 
 Rectangular cell volumes sum to the domain volume; outward face vectors close within 1e-14. Invalid dimensions/volumes are rejected. CPU and GPU uniform periodic flow (16x8, 20 steps) preserves every conservative component within 1e-13. A nonuniform periodic density wave (32x16, 30 steps) preserves all four integrated conserved quantities within 1e-12 and passes the preset FP64 parity bound 2e-11. Both complete Release CTest configurations pass, including prior 1D checks.
+
+## M4 axisymmetric nozzle
+
+The default smooth contour has chamber/throat/exit radii 0.2/0.15/0.225 and chamber/contraction/expansion lengths 1/2/4, with nondimensional P0=T0=R=1, gamma=1.4. A quasi-1D initial guess includes streamline radial velocity; it is then evolved by the full 2D flux/source solver for 4,000 iterations on 96x12 cells, reaching t=13.7749. It is not held fixed or overwritten by the analytical solution.
+
+| Check | Measured | Preset bound |
+|---|---:|---:|
+| Near-throat area-averaged axial Mach | 1.00957 | 0.85–1.15 |
+| Axial mean absolute Mach difference from quasi-1D | 0.000319245 | 0.12 |
+| Station mass-flow spread / maximum | 0.000774078 | 0.05 |
+| Stationary pressure state max drift, 50 steps | 2.22045e-15 | 1e-11 |
+
+The nozzle's small wall slopes make quasi-1D theory a useful approximation. These bounds accommodate legitimate multidimensional effects; they do not assert exact quasi-1D behavior for steep contours or shocked flow. Geometry identities, C1 joins, rejected invalid radii, inlet stagnation enthalpy and supersonic outlet extrapolation also pass. The initial stationary-state failure was traced to the 28-step FP64 inlet root solve; increasing the root solve to FP64 precision repaired it without changing the test threshold. GPU parity is checked after 100 nozzle steps on 32x8.

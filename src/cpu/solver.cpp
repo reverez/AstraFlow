@@ -35,7 +35,7 @@ template <class T> class CpuSolver final : public Solver {
             stats_.reconstruction_fallbacks += corrected;
         }
         for (int i = 0; i < n_; ++i)
-            res.set(i, fv_residual(i, flux, mesh_.cells.data(), mesh_.faces.data()));
+            res.set(i, fv_residual(i, flux, w, mesh_.cells.data(), mesh_.faces.data()));
     }
 
   public:

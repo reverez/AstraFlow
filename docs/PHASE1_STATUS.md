@@ -10,7 +10,7 @@ See [environment.md](environment.md). Project-local CUDA 12.8.93 installed; SM12
 - [x] M1 CPU Euler
 - [x] M2 CUDA Euler
 - [x] M3 2D finite volumes
-- [ ] M4 Axisymmetric nozzle
+- [x] M4 Axisymmetric nozzle
 - [ ] M5 Viscous Navier–Stokes
 - [ ] M6 Engineering analysis / output
 - [ ] M7 Interactive GUI
@@ -23,7 +23,7 @@ GitHub CLI has no authenticated host; remote creation deferred. Local developmen
 
 ## Latest validation
 
-M3 Release CPU/CUDA builds and complete milestone CTest suites pass. Rectangular mesh validity/face closure, 2D periodic uniform preservation, conservative density-wave evolution and FP64 parity pass. All four integrated conserved quantities drift by less than 1e-12. Earlier Euler gates remain green.
+M4 complete CUDA-build suite: 6/6 CTest entries pass, including CPU and GPU checks. Axis rest drift 2.22045e-15 after fixing inlet root precision. Nozzle 96x12, 4,000 steps: throat Mach 1.00957, mean Mach error 0.000319245, mass-flow spread 0.000774078. CPU/GPU nozzle parity passes 1e-10. No invalid states or relaxed tolerances.
 
 ## Execution plan
 

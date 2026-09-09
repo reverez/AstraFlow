@@ -39,10 +39,10 @@ __global__ void fv_faces(View<T> w, View<T> sx, View<T> sr, View<T> flux, const 
         atomicAdd(counts + 1, 1ULL);
 }
 template <class T>
-__global__ void fv_assemble(View<T> f, View<T> res, const Cell *c, const Face *faces) {
+__global__ void fv_assemble(View<T> f, View<T> res, View<T> w, const Cell *c, const Face *faces) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < res.size)
-        res.set(i, fv_residual(i, f, c, faces));
+        res.set(i, fv_residual(i, f, w, c, faces));
 }
 template <class T>
 __global__ void fv_rk(View<T> base, View<T> from, View<T> out, View<T> res, T dt, bool second,
@@ -92,7 +92,7 @@ template <class T> class GpuSolver final : public Solver {
         fv_faces<<<(nf_ + block_size - 1) / block_size, block_size>>>(
             view(w_), view(sx_), view(sr_), view(flux_, nf_), faces_.data(), s_, counts_.data());
         AF_CUDA(cudaGetLastError());
-        fv_assemble<<<blocks_, block_size>>>(view(flux_, nf_), view(res_), cells_.data(),
+        fv_assemble<<<blocks_, block_size>>>(view(flux_, nf_), view(res_), view(w_), cells_.data(),
                                              faces_.data());
         AF_CUDA(cudaGetLastError());
     }

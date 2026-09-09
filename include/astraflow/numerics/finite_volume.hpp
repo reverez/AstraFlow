@@ -15,6 +15,29 @@ template <class T> AF_HD State<T> boundary_state(State<T> w, const Face &f, Sett
             w[2] -= T(2 * f.nr) * normal;
         }
     }
+    if (f.boundary == Boundary::Inlet) {
+        T gamma = T(s.gas.gamma), j = w[1] - T(2) / (gamma - T(1)) * sound_speed(w, s.gas);
+        T lo = 0, hi = T(0.999);
+        for (int i = 0; i < (sizeof(T) == 8 ? 52 : 28); ++i) {
+            T m = T(0.5) * (lo + hi);
+            T a = std::sqrt(gamma * T(s.gas.gas_constant * s.t0) /
+                            (T(1) + (gamma - T(1)) * T(0.5) * m * m));
+            if (a * (m - T(2) / (gamma - T(1))) < j)
+                lo = m;
+            else
+                hi = m;
+        }
+        T mach = T(0.5) * (lo + hi), factor = T(1) + (gamma - T(1)) * T(0.5) * mach * mach;
+        T temperature = T(s.t0) / factor, p = T(s.p0) / std::pow(factor, gamma / (gamma - T(1)));
+        w = {{p / (T(s.gas.gas_constant) * temperature),
+              mach * std::sqrt(gamma * T(s.gas.gas_constant) * temperature), 0, p}};
+    }
+    if (f.boundary == Boundary::Outlet && w[1] < sound_speed(w, s.gas)) {
+        T olda = sound_speed(w, s.gas),
+          rho = w[0] * std::pow(T(s.back_pressure) / w[3], T(1 / s.gas.gamma));
+        T a = std::sqrt(T(s.gas.gamma * s.back_pressure) / rho);
+        w = {{rho, w[1] + T(2 / (s.gas.gamma - 1)) * (olda - a), w[2], T(s.back_pressure)}};
+    }
     return w;
 }
 template <class T>
@@ -69,13 +92,14 @@ AF_HD Flux<T> fv_flux(int i, View<T> w, View<T> sx, View<T> sr, const Face *face
     return hllc(l, r, s.gas, T(f.nx), T(f.nr));
 }
 template <class T>
-AF_HD State<T> fv_residual(int i, View<T> flux, const Cell *cells, const Face *faces) {
+AF_HD State<T> fv_residual(int i, View<T> flux, View<T> w, const Cell *cells, const Face *faces) {
     const auto &c = cells[i];
     State<T> res;
     for (int d = 0; d < 4; ++d) {
         int f = c.faces[d];
         res = res + T((d % 2 == 0 ? 1 : -1) * faces[f].area / c.volume) * flux.get(f);
     }
+    res[2] += T(c.radial_source) * w.get(i)[3];
     return res;
 }
 template <class T> AF_HD T fv_timestep(State<T> w, const Cell &c, const Face *faces, Settings s) {
