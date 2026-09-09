@@ -1,46 +1,42 @@
 # AstraFlow
 
-> **GPU-accelerated compressible computational fluid dynamics for axisymmetric rocket nozzle flows.**
+> **GPU-accelerated compressible CFD for axisymmetric rocket nozzle flows.**
 
-AstraFlow is a scientific-computing and high-performance computing project that implements a **2D axisymmetric compressible Euler/Navier–Stokes solver** for internal rocket-nozzle flow using **C++20 and NVIDIA CUDA**.
+AstraFlow is a scientific-computing project implementing a **2D axisymmetric compressible Euler/Navier–Stokes solver** in **C++20 and NVIDIA CUDA**, with a CPU reference backend, scientific verification suite, engineering analysis pipeline, reproducible simulation output, and interactive visualisation.
 
-The project is designed around two complementary solver backends:
+The project is architected around a conservative finite-volume formulation for high-speed compressible flow and targets an **NVIDIA GeForce RTX 5070 Laptop GPU** using native NVIDIA Blackwell **compute capability 12.0 (`sm_120`)**.
 
-- a **CPU reference implementation** for numerical verification, deterministic testing, and debugging;
-- a **CUDA production implementation** designed to exploit massively parallel NVIDIA GPU hardware.
-
-AstraFlow combines numerical fluid dynamics, thermodynamics, partial differential equations, finite-volume methods, GPU programming, scientific verification, software engineering, and interactive visualisation into a single portfolio-scale system.
-
-The current target platform is an **NVIDIA GeForce RTX 5070 Laptop GPU**, using NVIDIA Blackwell compute capability **12.0 (`sm_120`)**.
+I designed the mathematical model, numerical architecture, physical assumptions, verification strategy, GPU/CPU division, project structure, and development milestones. AI coding agents are used to accelerate implementation, testing, debugging, and documentation under those specifications. Numerical results are accepted only after comparison against analytical solutions, conservation properties, or CPU/GPU parity tests.
 
 ---
 
-> [!NOTE]
-> **Development status — Phase 1 / V1**
->
-> Core solver development is substantially complete. Milestones 0–6 have passed, covering the CPU and CUDA Euler solvers, 2D finite-volume infrastructure, axisymmetric rocket-nozzle formulation, viscous Navier–Stokes transport, engineering analysis, CLI execution, and reproducible scientific output.
->
-> Interactive GUI integration, CUDA performance profiling, grid-refinement verification, final documentation, and the comprehensive V1 acceptance pass remain in progress.
->
-> Detailed implementation status is maintained in [`docs/PHASE1_STATUS.md`](docs/PHASE1_STATUS.md).
+## Status
+
+**Phase 1 / V1 is under active development.**
+
+Milestones **0–6 are complete**, covering:
+
+- verified 1D CPU Euler solver;
+- CUDA Euler solver;
+- 2D finite-volume infrastructure;
+- axisymmetric nozzle formulation;
+- viscous compressible Navier–Stokes transport;
+- CPU/CUDA numerical parity;
+- engineering analysis;
+- command-line simulation;
+- JSON, CSV, and VTK output.
+
+The interactive GUI, CUDA optimisation pass, grid-refinement study, final benchmark suite, and V1 acceptance review remain in progress.
+
+See [`docs/PHASE1_STATUS.md`](docs/PHASE1_STATUS.md) for the implementation ledger.
 
 ---
 
 ## Preview
 
-<!-- Replace these placeholders with final project screenshots after GUI completion. -->
+<!-- Replace these placeholders as Phase 1 visualisation and benchmarking are completed. -->
 
-### Interactive CFD Workspace
-
-> **IMAGE PLACEHOLDER — AstraFlow GUI**
->
-> Recommended final image:
-> - full AstraFlow application window;
-> - nozzle Mach-number field;
-> - simulation controls;
-> - convergence graph;
-> - engineering metrics;
-> - RTX 5070 / CUDA performance panel.
+### Interactive Simulation
 
 <!--
 <p align="center">
@@ -48,513 +44,347 @@ The current target platform is an **NVIDIA GeForce RTX 5070 Laptop GPU**, using 
 </p>
 -->
 
-### Rocket Nozzle Flow Field
+> **Image pending:** AstraFlow GUI showing the nozzle flow field, simulation controls, residual history, engineering quantities, and CUDA performance.
 
-> **IMAGE PLACEHOLDER — Mach / Pressure Contours**
-
-<!--
-<p align="center">
-  <img src="docs/assets/nozzle-mach.png" width="90%" alt="AstraFlow rocket nozzle Mach field">
-</p>
--->
-
-### CPU vs CUDA Performance
-
-> **IMAGE PLACEHOLDER — Final benchmark graph**
->
-> This will be populated after the dedicated V1 profiling milestone.
+### Mach Field
 
 <!--
 <p align="center">
-  <img src="docs/assets/cpu-gpu-benchmark.png" width="85%" alt="AstraFlow CPU versus CUDA benchmark">
+  <img src="docs/assets/nozzle-mach.png" width="95%" alt="AstraFlow Mach-number field">
 </p>
 -->
 
----
+> **Image pending:** Mach-number contours through the converging-diverging nozzle.
 
-# Why I Built AstraFlow
+### Pressure Field
 
-AstraFlow began as an attempt to build a project at the intersection of several areas I wanted to understand more deeply:
+<!--
+<p align="center">
+  <img src="docs/assets/nozzle-pressure.png" width="95%" alt="AstraFlow pressure field">
+</p>
+-->
 
-- numerical mathematics;
-- fluid mechanics;
-- partial differential equations;
-- rocket propulsion;
-- modern C++;
-- GPU architecture;
-- CUDA programming;
-- scientific software;
-- verification and numerical analysis.
+> **Image pending:** Static-pressure distribution through the nozzle.
 
-Rather than building a CFD visualisation around an existing solver, my goal was to implement the numerical machinery itself.
+### CPU vs CUDA Scaling
 
-That distinction is central to the project.
+<!--
+<p align="center">
+  <img src="docs/assets/cpu-gpu-scaling.png" width="90%" alt="AstraFlow CPU versus CUDA performance">
+</p>
+-->
 
-AstraFlow does **not** call an external CFD package to obtain a solution and then display it. The finite-volume solver, flux calculations, reconstruction, time integration, axisymmetric geometry, transport terms, CUDA execution path, engineering integrations, verification problems, and analysis infrastructure are implemented as part of AstraFlow.
-
-The resulting project is intended not only to produce fluid-flow images, but also to answer a deeper engineering question:
-
-> **Can a compact, independently implemented CFD system accurately reproduce the fundamental physics of compressible rocket-nozzle flow while making effective use of a modern consumer NVIDIA GPU?**
+> **Graph pending:** measured CPU/CUDA iteration time and speedup across increasing mesh sizes.
 
 ---
 
-# Development Philosophy
+# Project Objectives
 
-AstraFlow is being developed using a deliberately verification-first process.
+AstraFlow is intended to investigate the complete path from continuous mathematical model to verified high-performance numerical software.
 
-The development order is approximately:
+The core objectives are to:
 
-```text
-Mathematical model
-        ↓
-1D reference problem
-        ↓
-CPU finite-volume solver
-        ↓
-Analytical verification
-        ↓
-CUDA implementation
-        ↓
-CPU ↔ GPU numerical parity
-        ↓
-2D conservative finite volumes
-        ↓
-Axisymmetric formulation
-        ↓
-Rocket-nozzle geometry
-        ↓
-Viscous Navier–Stokes transport
-        ↓
-Engineering quantities
-        ↓
-Interactive visualisation
-        ↓
-Profiling and optimisation
-        ↓
-Final scientific verification
-```
+1. implement the governing equations rather than rely on an external CFD solver;
+2. construct a conservative numerical method suitable for compressible and transonic flow;
+3. reproduce characteristic internal rocket-nozzle behaviour;
+4. verify the numerical implementation against known solutions and invariants;
+5. maintain independent CPU and CUDA execution paths for cross-validation;
+6. exploit a modern consumer NVIDIA GPU for parallel finite-volume computation;
+7. quantify numerical error and hardware performance rather than relying on visual plausibility;
+8. expose the solver through both a reproducible CLI and an interactive engineering interface.
 
-The project therefore does not accept:
-
-```text
-"the simulation looks correct"
-```
-
-as evidence that the implementation is correct.
-
-Each major numerical subsystem is tested against either:
-
-- a known analytical solution;
-- a canonical CFD verification problem;
-- conservation properties;
-- the independently executable CPU backend;
-- mesh-refinement behaviour.
-
-Only after these gates pass is functionality promoted into the main application.
+The project is therefore both a **CFD solver** and a study in **numerical methods, GPU computing, scientific software engineering, and AI-assisted technical development**.
 
 ---
 
-# Human + AI Development Workflow
+# Authorship and AI-Assisted Development
 
-AstraFlow is also an experiment in using modern AI systems effectively during the development of technically demanding scientific software.
+AstraFlow is developed using an **architect-directed, AI-assisted implementation workflow**.
 
-The project is **AI-assisted rather than AI-autonomous**.
+I am responsible for defining and reviewing:
 
-I act as the project's architect and mathematical/engineering decision-maker. My responsibilities include:
-
-- defining the physical scope;
-- selecting the governing equations;
-- selecting the numerical formulation;
-- deriving and reviewing mathematical relationships;
-- determining what should and should not be included in V1;
-- defining verification problems;
-- evaluating numerical results;
-- specifying CPU/GPU parity requirements;
-- deciding the CUDA architecture;
-- defining milestone acceptance criteria;
-- reviewing implementation decisions;
-- identifying scientifically misleading shortcuts;
-- directing iterative refinement.
-
-AI coding agents are used as implementation collaborators for tasks such as:
-
-- translating mathematical formulations into C++/CUDA;
-- generating initial implementations;
-- developing tests;
-- investigating compiler errors;
-- implementing repetitive infrastructure;
-- running verification cases;
-- analysing failures;
-- performing targeted refactoring;
-- documenting implemented systems.
-
-The workflow is deliberately not:
-
-```text
-prompt → generate repository → assume it works
-```
-
-Instead:
-
-```text
-Architecture
-    ↓
-Mathematics
-    ↓
-Implementation specification
-    ↓
-AI-assisted implementation
-    ↓
-Numerical tests
-    ↓
-Human/architectural review
-    ↓
-Failure analysis
-    ↓
-Targeted correction
-    ↓
-Verification
-    ↓
-Next milestone
-```
-
-For a project involving nonlinear PDEs and GPU numerical computing, this distinction matters.
-
-An implementation can compile successfully and produce visually plausible flow fields while still containing serious errors in:
-
-- conservation;
+- physical scope;
+- governing equations;
+- state representation;
+- finite-volume formulation;
+- reconstruction method;
+- Riemann solver;
+- temporal integration;
+- axisymmetric treatment;
+- viscous and thermal transport;
 - boundary conditions;
-- geometry terms;
-- Riemann fluxes;
-- floating-point behaviour;
-- dimensional scaling;
-- CUDA execution;
-- numerical stability.
+- numerical stability requirements;
+- verification cases;
+- error tolerances;
+- CPU/CUDA comparison strategy;
+- GPU architecture;
+- software architecture;
+- milestone acceptance criteria;
+- interpretation of numerical results.
 
-AstraFlow therefore treats AI-generated code as something that must be **tested against mathematics and physical invariants**, not as an automatically authoritative result.
+AI coding agents, principally Codex, are used as implementation tools to accelerate:
 
----
+- C++ and CUDA implementation;
+- test construction;
+- build-system work;
+- debugging;
+- numerical experiments;
+- repetitive infrastructure;
+- profiling;
+- documentation.
 
-# Scientific Scope
+The development process is not based on accepting generated code because it compiles or produces plausible images.
 
-The V1 solver models a:
+Each numerical subsystem is required to satisfy targeted tests before becoming part of the accepted solver:
 
-> **single-species, calorically perfect, compressible ideal gas flowing through an axisymmetric converging-diverging rocket nozzle.**
+```text
+Mathematical design
+        ↓
+Implementation specification
+        ↓
+AI-assisted implementation
+        ↓
+Targeted numerical tests
+        ↓
+Analytical / conservation / parity validation
+        ↓
+Architectural review
+        ↓
+Milestone acceptance
+```
 
-The current solver includes:
-
-- compressible flow;
-- conservation of mass;
-- axial momentum;
-- radial momentum;
-- total energy;
-- pressure-density-energy coupling;
-- finite-volume spatial discretisation;
-- second-order MUSCL reconstruction;
-- HLLC approximate Riemann fluxes;
-- HLLE robustness fallback;
-- explicit SSP-RK2 time integration;
-- CFL-controlled timesteps;
-- axisymmetric geometric terms;
-- Newtonian viscosity;
-- Fourier heat conduction;
-- configurable thermodynamic properties;
-- slip and no-slip wall treatment;
-- stagnation inlet conditions;
-- pressure/supersonic outlet handling.
-
-The V1 model intentionally excludes:
-
-- combustion chemistry;
-- multi-species reacting flow;
-- turbulence modelling;
-- LES/DNS turbulence research;
-- external rocket plumes;
-- adaptive mesh refinement;
-- conjugate wall heat transfer;
-- regenerative cooling;
-- ablative materials;
-- non-equilibrium chemistry;
-- real-gas thermodynamics;
-- multi-GPU execution.
-
-These are possible future extensions rather than shortcuts to be inserted before the baseline solver has been fully validated.
+This separation is particularly important for scientific computing, where an implementation can execute successfully while remaining physically or numerically incorrect.
 
 ---
 
-# Governing Equations
+# Physical Model
 
-AstraFlow numerically solves the conservation equations for a compressible fluid.
+V1 models a **single-species, calorically perfect ideal gas** flowing through an axisymmetric converging-diverging nozzle.
 
-The conservative state is represented by
+The conservative state is
 
-\[
-\mathbf U =
+$$
+\mathbf{U}
+=
 \begin{bmatrix}
 \rho \\
 \rho u \\
 \rho v \\
 \rho E
 \end{bmatrix},
-\]
+$$
 
 where:
 
-- \(\rho\) is density;
-- \(u\) is axial velocity;
-- \(v\) is radial velocity;
-- \(E\) is total specific energy.
+- $\rho$ is density;
+- $u$ is axial velocity;
+- $v$ is radial velocity;
+- $E$ is total specific energy.
 
-At a high level, the conservation law can be written as
+The governing system can be written in conservative form as
 
-\[
-\frac{\partial \mathbf U}{\partial t}
+$$
+\frac{\partial \mathbf{U}}{\partial t}
 +
-\nabla\cdot \mathbf F_c
+\nabla \cdot \mathbf{F}_c
 -
-\nabla\cdot \mathbf F_v
+\nabla \cdot \mathbf{F}_v
 =
-\mathbf S,
-\]
+\mathbf{S},
+$$
 
-where:
-
-- \(\mathbf F_c\) represents convective fluxes;
-- \(\mathbf F_v\) represents viscous and thermal transport;
-- \(\mathbf S\) contains the terms required by the axisymmetric formulation.
-
-For the inviscid Euler limit,
-
-\[
-\mathbf F_v=0.
-\]
-
-For the Navier–Stokes formulation, viscous stresses and conductive heat flux are included.
+where $\mathbf{F}_c$ contains convective fluxes, $\mathbf{F}_v$ contains viscous and thermal fluxes, and $\mathbf{S}$ represents axisymmetric geometric source terms.
 
 ---
 
-## Continuity
+## Mass Conservation
 
-Mass conservation is governed by
-
-\[
+$$
 \frac{\partial \rho}{\partial t}
 +
-\nabla\cdot(\rho\mathbf u)
+\nabla \cdot (\rho \mathbf{u})
 =
 0.
-\]
+$$
 
 ---
 
-## Momentum
+## Momentum Conservation
 
-The compressible momentum equation is
-
-\[
-\frac{\partial(\rho\mathbf u)}{\partial t}
+$$
+\frac{\partial (\rho \mathbf{u})}{\partial t}
 +
-\nabla\cdot
+\nabla \cdot
 \left(
-\rho\mathbf u\otimes\mathbf u+p\mathbf I-\boldsymbol\tau
+\rho \mathbf{u} \otimes \mathbf{u}
++
+p\mathbf{I}
+-
+\boldsymbol{\tau}
 \right)
 =
-\mathbf S_m.
-\]
+\mathbf{S}_m.
+$$
 
-Here:
-
-- \(p\) is static pressure;
-- \(\boldsymbol\tau\) is the viscous stress tensor;
-- \(\mathbf S_m\) contains the appropriate axisymmetric geometric contribution.
+Here $p$ is static pressure and $\boldsymbol{\tau}$ is the Newtonian viscous stress tensor.
 
 ---
 
-## Energy
+## Energy Conservation
 
-Total energy evolves according to
-
-\[
-\frac{\partial(\rho E)}{\partial t}
+$$
+\frac{\partial (\rho E)}{\partial t}
 +
-\nabla\cdot
+\nabla \cdot
 \left[
-(\rho E+p)\mathbf u
+(\rho E+p)\mathbf{u}
 -
-\boldsymbol\tau\cdot\mathbf u
+\boldsymbol{\tau}\cdot\mathbf{u}
 +
-\mathbf q
+\mathbf{q}
 \right]
 =
 S_E.
-\]
+$$
 
-Conductive heat transfer follows Fourier's law,
+Thermal conduction follows Fourier's law,
 
-\[
-\mathbf q=-k\nabla T.
-\]
-
----
-
-## Equation of State
-
-V1 assumes a calorically perfect ideal gas,
-
-\[
-p=(\gamma-1)\rho e,
-\]
-
-where \(e\) is internal energy.
-
-The local speed of sound is
-
-\[
-a=\sqrt{\frac{\gamma p}{\rho}}
-\]
-
-and Mach number is
-
-\[
-M=\frac{|\mathbf u|}{a}.
-\]
-
-This approximation is intentionally simpler than the thermochemical behaviour of real rocket exhaust.
-
-The objective of V1 is to establish a trustworthy CFD and CUDA foundation before introducing substantially more complex gas models.
+$$
+\mathbf{q}
+=
+-k\nabla T.
+$$
 
 ---
 
-# Why Navier–Stokes?
+## Thermodynamics
 
-Navier–Stokes equations describe conservation of momentum in viscous fluids and form the basis of an enormous amount of computational fluid dynamics.
+V1 uses the calorically perfect ideal-gas relation
 
-AstraFlow **numerically approximates a particular compressible Navier–Stokes problem**.
+$$
+p
+=
+(\gamma-1)\rho e,
+$$
 
-It does not claim to solve the mathematical Navier–Stokes existence-and-smoothness problem.
+with local speed of sound
 
-The famous three-dimensional existence/smoothness question is a fundamentally different mathematical problem from numerically solving discretised Navier–Stokes equations for specified geometries, initial conditions, constitutive assumptions, and boundary conditions.
+$$
+a
+=
+\sqrt{\frac{\gamma p}{\rho}},
+$$
 
-This distinction is maintained explicitly throughout the project.
+and Mach number
+
+$$
+M
+=
+\frac{\lVert \mathbf{u} \rVert}{a}.
+$$
+
+Thermal conductivity is related to viscosity using the Prandtl number,
+
+$$
+k
+=
+\frac{\mu c_p}{Pr}.
+$$
+
+The model intentionally does not represent detailed rocket combustion chemistry or chemically reacting exhaust.
 
 ---
 
-# Numerical Method
+# Numerical Formulation
 
-## Finite-Volume Formulation
+## Finite-Volume Discretisation
 
-AstraFlow uses a **cell-centred conservative finite-volume method**.
+AstraFlow uses a **cell-centred conservative finite-volume scheme**.
 
-For a control volume \(V_i\),
+For control volume $V_i$,
 
-\[
-\frac{d\mathbf U_i}{dt}
+$$
+\frac{d\mathbf{U}_i}{dt}
 =
 -
 \frac{1}{V_i}
 \sum_f
-\mathbf F_fA_f
+\mathbf{F}_f A_f
 +
-\mathbf S_i.
-\]
+\mathbf{S}_i.
+$$
 
-The finite-volume formulation was selected because conservation laws are fundamental to compressible fluid dynamics.
-
-It is particularly suitable for problems containing:
-
-- shocks;
-- rarefaction waves;
-- contact discontinuities;
-- strong pressure gradients;
-- transonic acceleration.
-
-Rocket nozzles can contain several of these behaviours simultaneously.
+The formulation directly evolves conserved quantities and is suitable for compressible flow containing strong gradients, shocks, contact discontinuities, and transonic acceleration.
 
 ---
 
-# MUSCL Reconstruction
+## Spatial Reconstruction
 
-First-order finite-volume methods are robust but excessively diffusive.
+Second-order spatial reconstruction is performed using **MUSCL**.
 
-AstraFlow therefore implements **MUSCL reconstruction** to obtain higher spatial accuracy while retaining control around discontinuities.
-
-The solver provides slope limiting strategies including:
+Implemented slope limiters include:
 
 - Minmod;
 - Van Leer;
-- Monotonized Central / MC.
+- Monotonized Central (MC).
 
-These limiters reduce nonphysical oscillations around shocks and strong gradients.
-
----
-
-# HLLC and HLLE Fluxes
-
-Fluxes between neighbouring finite-volume cells require solving, exactly or approximately, a local Riemann problem.
-
-AstraFlow uses the **HLLC approximate Riemann solver** as the primary convective flux.
-
-HLLC is especially useful for compressible-flow problems because it resolves the approximate wave structure associated with:
-
-- left-moving waves;
-- contact waves;
-- right-moving waves.
-
-A more diffusive **HLLE fallback** is available when a reconstructed HLLC state becomes numerically pathological.
-
-The fallback is treated as a numerical safety mechanism rather than the default solver.
-
-Usage can be monitored during simulation so that a case requiring excessive fallback behaviour can be identified rather than silently accepted.
+These limit reconstructed gradients near discontinuities to suppress nonphysical oscillation while retaining higher-order behaviour in smooth regions.
 
 ---
 
-# Time Integration
+## Convective Flux
 
-AstraFlow uses explicit **second-order Strong Stability Preserving Runge–Kutta integration (SSP-RK2)**.
+Intercell convective fluxes use the **HLLC approximate Riemann solver**.
 
-The timestep is limited according to a CFL condition related to local signal propagation speeds.
+HLLC resolves the principal left-, contact-, and right-moving wave structure required for compressible Euler flow.
 
-Conceptually,
+A more diffusive **HLLE fallback** is available when reconstructed states would otherwise produce a pathological intermediate solution.
 
-\[
+Fallback usage is treated as a diagnostic rather than silently becoming the normal numerical method.
+
+---
+
+## Time Integration
+
+The production baseline uses **second-order Strong Stability Preserving Runge–Kutta integration (SSP-RK2)**.
+
+The timestep is controlled by a CFL stability condition based on local convective signal speed,
+
+$$
 \Delta t
 \propto
 \mathrm{CFL}
 \frac{\Delta x}
-{|\mathbf u|+a}.
-\]
+{\lVert \mathbf{u} \rVert + a}.
+$$
 
-Viscous simulations additionally account for the more restrictive diffusive stability requirement where necessary.
+Viscous simulations additionally account for the appropriate diffusive stability restriction.
 
 ---
 
-# Axisymmetric Rocket Geometry
+# Axisymmetric Formulation
 
-A full three-dimensional nozzle would be unnecessarily expensive for an initial rotationally symmetric rocket-nozzle study.
+AstraFlow models the meridional $(x,r)$ plane of a rotationally symmetric nozzle.
 
-AstraFlow therefore models the meridional \(x-r\) plane.
-
-Rotating this domain around the centreline represents the corresponding axisymmetric 3D nozzle.
-
-Conceptually:
+The computational domain therefore represents a three-dimensional axisymmetric geometry without requiring a full 3D mesh.
 
 ```text
-radius r
-   ↑
-   │
-   │ chamber
-   │───────────────────╲
-   │                    ╲
-   │                     ╲
-   │                      ╲ throat
-   │                       ╲
-   │                        ╲
-   │                         ╲────────────── exit
-   │
-   └────────────────────────────────────────→ x
+r
+↑
+│
+│  chamber
+│  ──────────────────╲
+│                     ╲
+│                      ╲
+│                       ╲ throat
+│                        ╲
+│                         ╲
+│                          ╲──────────── exit
+│
+└──────────────────────────────────────→ x
 ```
 
-The nozzle is parameterised using quantities such as:
+The nozzle geometry is parameterised by quantities including:
 
 - chamber radius;
 - chamber length;
@@ -562,102 +392,77 @@ The nozzle is parameterised using quantities such as:
 - contraction length;
 - exit radius;
 - expansion length;
-- axial grid resolution;
-- radial grid resolution.
+- axial resolution;
+- radial resolution.
 
-The mesh follows the nozzle geometry rather than pretending that the flow occurs inside a rectangular Cartesian box.
+A structured body-conforming mesh is generated from the nozzle contour.
+
+Axisymmetric finite-volume geometry and source terms are included explicitly. The centreline treatment is constructed to avoid singular numerical evaluation as $r \rightarrow 0$.
 
 ---
 
 # Boundary Conditions
 
-V1 supports the boundary conditions required for internal nozzle simulation.
+V1 includes the boundary conditions required for internal nozzle simulation.
 
-### Centreline
+### Axis
 
-Axisymmetric symmetry is enforced along
+Axisymmetric symmetry at $r=0$.
 
-\[
-r=0.
-\]
+### Inviscid Wall
 
-Special treatment prevents singular behaviour from naïvely evaluating geometric terms containing \(1/r\).
+Slip and impermeability for Euler verification.
 
-### Nozzle Wall
+### Viscous Wall
 
-The inviscid solver can use a slip wall.
+No-slip, impermeable, and adiabatic treatment for Navier–Stokes simulations.
 
-The viscous solver supports an:
+### Inlet
 
-- impermeable;
-- no-slip;
-- adiabatic
+Reservoir conditions are specified using stagnation pressure and temperature,
 
-wall.
-
-### Chamber / Inlet
-
-The inlet is defined through reservoir/stagnation quantities such as:
-
-\[
+$$
 P_0,\qquad T_0.
-\]
+$$
 
 ### Outlet
 
-The outlet treatment distinguishes between subsonic and supersonic behaviour.
+Back pressure is applied where the outlet remains subsonic.
 
-A prescribed ambient/back pressure can influence subsonic information entering the domain, while a correctly supersonic exit should not have every primitive quantity artificially imposed.
-
----
-
-# CPU Reference Backend
-
-AstraFlow intentionally contains a CPU solver even though GPU execution is one of the main project objectives.
-
-The CPU backend acts as a **numerical reference implementation**.
-
-Its purpose is not maximum CPU performance.
-
-Its purpose is to provide:
-
-- independent execution;
-- easier debugging;
-- deterministic test cases;
-- verification;
-- CPU/CUDA numerical comparison;
-- CPU-only continuous integration.
-
-This allows CUDA kernels to be checked against the same physical problem instead of being trusted merely because they execute successfully.
+Supersonic outflow is treated without incorrectly imposing all downstream primitive variables on a region from which information cannot propagate upstream.
 
 ---
 
-# CUDA Backend
+# CPU and CUDA Backends
 
-The production solver is implemented using **CUDA C++**.
+AstraFlow contains separate CPU and CUDA execution backends operating on the same mathematical model.
 
-The primary development GPU is:
+The CPU implementation serves primarily as a **reference backend** for:
+
+- deterministic verification;
+- debugging;
+- regression testing;
+- CPU-only CI;
+- CPU/CUDA parity analysis.
+
+The CUDA implementation is the production high-performance backend.
+
+Primary development hardware:
 
 ```text
-NVIDIA GeForce RTX 5070 Laptop GPU
-Architecture: NVIDIA Blackwell
-Compute capability: 12.0
-Target: sm_120
+GPU:                  NVIDIA GeForce RTX 5070 Laptop GPU
+Architecture:         NVIDIA Blackwell
+Compute capability:   12.0
+CUDA target:          sm_120
 ```
 
-The development environment uses a project-local CUDA 12.8 toolchain capable of generating native Blackwell `sm_120` code.
-
-AstraFlow's initial CUDA device test does more than query a driver property: it compiles and executes a CUDA kernel and reports the architecture used by the running binary.
-
-This protects against a configuration where CUDA appears available but the solver is not actually being built for the intended GPU generation.
+The project-local CUDA toolchain successfully compiles and executes native `sm_120` kernels on the target GPU.
 
 ---
 
-# GPU Memory Architecture
+# CUDA Architecture
 
-GPU field data is designed around **Structure of Arrays (SoA)** storage.
-
-Conceptually:
+Simulation fields use a **Structure of Arrays (SoA)** layout where appropriate:
 
 ```text
 rho[]
@@ -674,260 +479,231 @@ fluxes[]
 residuals[]
 ```
 
-This layout is chosen to favour coalesced GPU memory access when neighbouring threads access the same physical quantity for adjacent cells.
+This layout is intended to improve memory coalescing when neighbouring CUDA threads access the same physical field.
 
-Device resources are wrapped with explicit ownership rather than scattering uncontrolled `cudaMalloc` and `cudaFree` calls throughout the codebase.
+The GPU backend is structured around stages conceptually equivalent to:
 
-Reusable buffers are allocated outside the timestep loop wherever practical.
+```text
+primitive-variable evaluation
+        ↓
+gradient reconstruction
+        ↓
+MUSCL face reconstruction
+        ↓
+HLLC / HLLE flux evaluation
+        ↓
+viscous flux evaluation
+        ↓
+axisymmetric source terms
+        ↓
+residual assembly
+        ↓
+SSP-RK update
+        ↓
+residual reduction
+```
+
+Device allocations are managed through reusable owned buffers rather than repeatedly allocating memory inside the timestep loop.
 
 ---
 
-# Precision
+# Floating-Point Precision
 
-AstraFlow supports both single- and double-precision numerical paths where appropriate.
+The solver supports FP32 and FP64 execution where required.
 
 ### FP32
 
-Primary interactive/performance mode.
-
-This is particularly suitable for a consumer RTX GPU where FP32 throughput is substantially more important than high-rate FP64 performance.
+Primary interactive and high-throughput CUDA mode.
 
 ### FP64
 
-Verification/reference GPU mode.
+Used extensively for verification and CPU/GPU parity analysis.
 
-It is used to investigate numerical parity between the CPU and CUDA implementations.
-
-The solver also applies dimensional scaling/non-dimensionalisation to improve numerical conditioning rather than assuming raw SI quantities will always behave well under FP32 arithmetic.
+Physical problems are internally scaled where appropriate to improve conditioning and avoid unnecessary loss of precision when using dimensional rocket-engine quantities.
 
 ---
 
-# Current Verification Results
+# Verification Results
 
-The following results come from the actual development milestone tests completed so far.
+The following values were measured during completed Phase 1 milestone tests.
 
-They are **measured development results**, not theoretical targets.
-
----
+They are not projected values.
 
 ## Sod Shock Tube
 
-The canonical Sod shock tube exercises:
-
-- a shock wave;
-- a contact discontinuity;
-- a rarefaction fan.
-
-For a 400-cell CPU case, the current implementation produced mean absolute errors of approximately:
+A 400-cell Sod problem produced:
 
 | Quantity | Mean absolute error |
 |---|---:|
-| Density | `0.001446` |
-| Velocity | `0.002546` |
-| Pressure | `0.000891` |
+| Density | `1.446 × 10^-3` |
+| Velocity | `2.546 × 10^-3` |
+| Pressure | `8.91 × 10^-4` |
 
-Mass conservation error was approximately:
+Measured mass-conservation error:
 
-```text
-3.33 × 10^-15
-```
+$$
+3.33 \times 10^{-15}.
+$$
 
-for the tested configuration.
+<!-- Add Sod comparison graph here. -->
 
----
-
-## CPU ↔ CUDA Euler Parity
-
-After matching floating-point contraction behaviour between CPU and CUDA code paths:
-
-### FP64
-
-Maximum CPU/GPU difference:
-
-```text
-≈ 4.22 × 10^-14
-```
-
-### FP32
-
-Maximum CPU/GPU difference:
-
-```text
-≈ 4.62 × 10^-6
-```
-
-Both precision modes passed the configured verification tolerances.
+<!--
+<p align="center">
+  <img src="docs/assets/sod-verification.png" width="90%" alt="Sod shock-tube numerical versus exact solution">
+</p>
+-->
 
 ---
 
-## 2D Conservation Test
+## CPU / CUDA Euler Parity
 
-A transported 2D density-wave case conserved all four integrated conservative quantities within approximately:
+Maximum measured CPU/GPU state difference:
 
-```text
-1 × 10^-12
-```
+| Precision | Maximum difference |
+|---|---:|
+| FP64 | `4.22 × 10^-14` |
+| FP32 | `4.62 × 10^-6` |
 
-Maximum CPU/GPU difference was approximately:
-
-```text
-1.78 × 10^-15
-```
-
-for the tested FP64 configuration.
+Both passed their configured numerical parity criteria.
 
 ---
 
-## Axisymmetric Nozzle Verification
+## 2D Conservative Transport
 
-A smooth inviscid nozzle verification case currently produces:
+The transported-density-wave verification conserved all four integrated conservative quantities within approximately
 
-```text
-Throat Mach number: ≈ 1.0096
-```
+$$
+10^{-12}.
+$$
 
-showing the expected transition through approximately sonic conditions at the throat.
+Maximum measured CPU/GPU difference:
 
-The mean Mach-number difference from the corresponding quasi-one-dimensional isentropic relation was approximately:
+$$
+1.78 \times 10^{-15}.
+$$
 
-```text
-0.000319
-```
+---
 
-and axial mass-flow spread was approximately:
+## Axisymmetric Nozzle
 
-```text
-0.0774 %
-```
+The current inviscid nozzle verification produced:
 
-for the tested configuration.
+| Metric | Result |
+|---|---:|
+| Throat Mach number | `1.0096` |
+| Mean Mach difference from quasi-1D relation | `3.19 × 10^-4` |
+| Axial mass-flow spread | `0.0774 %` |
+| Stationary-state maximum drift | `2.22 × 10^-15` |
+| CPU/GPU nozzle difference | `4.88 × 10^-15` |
 
-A stationary axisymmetric state was preserved with a maximum measured drift of approximately:
+The throat result demonstrates the expected transition through approximately sonic conditions.
 
-```text
-2.22 × 10^-15
-```
+<!-- Add analytical-vs-numerical nozzle graph here. -->
 
-and nozzle CPU/GPU parity differed by approximately:
-
-```text
-4.88 × 10^-15
-```
-
-in the tested configuration.
+<!--
+<p align="center">
+  <img src="docs/assets/nozzle-verification.png" width="90%" alt="Numerical and quasi-1D nozzle Mach comparison">
+</p>
+-->
 
 ---
 
 ## Viscous Verification
 
-Compressible Couette flow is used as a canonical viscous verification problem.
-
-Current mean errors are approximately:
+Compressible Couette-flow verification currently gives:
 
 | Quantity | Mean error |
 |---|---:|
 | Velocity | `5.15 × 10^-5` |
 | Temperature | `4.46 × 10^-5` |
 
-CPU/GPU viscous-state parity reached approximately:
+CPU/GPU parity:
 
-```text
-FP64: 4.00 × 10^-15
-FP32: 4.26 × 10^-6
-```
+| Precision | Maximum difference |
+|---|---:|
+| FP64 | `4.00 × 10^-15` |
+| FP32 | `4.26 × 10^-6` |
 
-for the milestone validation cases.
+<!-- Add Couette analytical comparison here. -->
 
 ---
 
-# Verification Still Required Before V1 Acceptance
+## Remaining V1 Verification
 
-These development results are encouraging, but V1 is not considered scientifically complete yet.
+Before V1 acceptance, the project will additionally complete:
 
-The final verification phase will additionally include:
-
-- complete Release CPU test suite;
-- complete Release CUDA test suite;
-- final uniform-state verification;
-- Sod regression;
-- isentropic nozzle regression;
-- viscous analytical regression;
-- CPU/GPU parity regression;
-- multi-resolution grid-refinement study;
-- rocket-nozzle runtime tests;
+- multi-resolution grid-refinement analysis;
+- final Release CPU regression;
+- final Release CUDA regression;
+- full rocket-nozzle CPU/CUDA comparison;
 - CUDA memory/error diagnostics;
-- final engineering-output consistency analysis.
+- final GUI acceptance;
+- final performance profiling.
 
-AstraFlow will not claim a formal spatial convergence result until the planned grid-refinement study has actually been completed and documented.
+Formal convergence claims will not be made until the grid-refinement study is complete.
 
 ---
 
-# Rocket Engineering Outputs
+# Engineering Analysis
 
-AstraFlow transforms numerical flow fields into useful engineering measurements.
+The CFD solution is converted into nozzle-performance quantities directly from the numerical field.
 
 ## Mass Flow
 
-Mass flow is evaluated by integrating the numerical field across an axisymmetric section,
-
-\[
-\dot m
+$$
+\dot{m}
 =
 \int_A \rho u\,dA.
-\]
+$$
 
-Rather than assuming the exit is perfectly uniform, the integration uses the finite-volume solution.
+Mass-flow consistency is also evaluated across multiple axial stations as a conservation diagnostic.
 
 ---
 
 ## Exit Conditions
 
-The solver determines quantities including:
+The solver calculates representative exit quantities including:
 
-- exit Mach number;
+- Mach number;
 - axial velocity;
 - pressure;
 - temperature.
 
-Appropriate area- or mass-weighted averaging is used depending on the quantity.
+Area- or mass-weighted averaging is used where physically appropriate.
 
 ---
 
 ## Thrust
 
-Nozzle thrust is estimated directly from the computed exit plane,
+Nozzle thrust is evaluated from the computed exit plane using
 
-\[
+$$
 F
 =
-\int_{A_e}\rho u^2\,dA
+\int_{A_e} \rho u^2\,dA
 +
 \int_{A_e}(p-p_a)\,dA.
-\]
+$$
 
-This allows nonuniform exit profiles to contribute naturally.
+This avoids assuming that the exit state is perfectly uniform.
 
 ---
 
 ## Specific Impulse
 
-Specific impulse is calculated as
-
-\[
+$$
 I_{sp}
 =
-\frac{F}{\dot m g_0}.
-\]
+\frac{F}{\dot{m}g_0}.
+$$
 
-These values describe the idealised CFD model and must not be interpreted as experimental certification of a real rocket engine.
+These quantities describe the idealised numerical model and are not presented as experimental or certification-grade rocket-engine predictions.
 
 ---
 
-# Reproducible Simulation Output
+# Reproducible Output
 
-AstraFlow is designed so that simulations can be reproduced and inspected independently of the GUI.
-
-A run can produce:
+Each production simulation can generate a self-contained run directory:
 
 ```text
 runs/<run-id>/
@@ -941,166 +717,37 @@ runs/<run-id>/
 
 ### `config.json`
 
-Stores the effective simulation configuration.
+Effective simulation configuration.
 
 ### `convergence.csv`
 
-Stores residual/convergence history.
+Residual history.
 
 ### `performance.json`
 
-Stores measured runtime information.
+Execution and performance data.
 
 ### `summary.json`
 
-Stores engineering outputs and simulation metadata.
+Derived engineering quantities and run metadata.
 
 ### `mesh.vts`
 
-Exports the structured nozzle mesh.
+Structured computational mesh.
 
 ### `final_state.vts`
 
-Exports CFD fields for independent visualisation.
+Final CFD state for independent visualisation.
 
-VTK StructuredGrid output allows the numerical results to be loaded into tools such as **ParaView**, providing an independent visualisation path instead of forcing all analysis through AstraFlow's own interface.
-
----
-
-# Interactive GUI
-
-The V1 desktop application uses:
-
-- Dear ImGui;
-- ImPlot;
-- GLFW;
-- OpenGL.
-
-The GUI is deliberately separated from the CFD implementation.
-
-There is no duplicate GUI-specific physics solver.
-
-The interface invokes the same underlying solver infrastructure used by command-line simulations.
-
-The application is designed around panels for:
-
-### Simulation Control
-
-- Run;
-- Pause;
-- Single Step;
-- Reset;
-- Regenerate Mesh.
-
-### Numerical Parameters
-
-- CPU/CUDA backend;
-- precision;
-- grid resolution;
-- CFL;
-- iteration limit;
-- residual target.
-
-### Gas / Chamber
-
-- \(\gamma\);
-- gas constant;
-- viscosity;
-- Prandtl number;
-- stagnation pressure;
-- stagnation temperature;
-- ambient pressure.
-
-### Geometry
-
-- chamber size;
-- throat radius;
-- contraction dimensions;
-- exit radius;
-- expansion length.
-
-### Flow Visualisation
-
-Fields include:
-
-- pressure;
-- density;
-- temperature;
-- Mach number;
-- axial velocity;
-- radial velocity;
-- velocity magnitude;
-- total energy;
-- vorticity.
-
-### Convergence
-
-Live residual plots display the evolution of:
-
-- continuity;
-- axial momentum;
-- radial momentum;
-- energy.
-
-### Engineering Analysis
-
-The interface exposes:
-
-- mass flow;
-- throat Mach;
-- exit Mach;
-- exit velocity;
-- exit pressure;
-- thrust;
-- specific impulse;
-- conservation diagnostics.
-
-### GPU Performance
-
-The final interface is designed to display:
-
-- detected NVIDIA GPU;
-- CUDA architecture;
-- grid cell count;
-- device memory;
-- iteration time;
-- iterations per second;
-- visualisation update rate.
+VTK StructuredGrid output allows results to be inspected independently in applications such as ParaView.
 
 ---
 
-# Asynchronous Simulation Architecture
+# Interfaces
 
-The GUI is not intended to block while CFD iterations execute.
+## CLI
 
-Simulation execution and user-interface rendering are therefore separated.
-
-The solver exposes states conceptually equivalent to:
-
-```text
-Idle
-Ready
-Running
-Paused
-Converged
-Failed
-```
-
-The GUI communicates with the solver worker and receives safe snapshots of simulation fields.
-
-This prevents the rendering thread from arbitrarily modifying CUDA state while kernels are operating.
-
-For V1, selected visualisation data can be periodically transferred from device memory to host memory.
-
-Direct CUDA/OpenGL interoperability is intentionally deferred until profiling demonstrates that these transfers are a meaningful bottleneck.
-
----
-
-# Command-Line Interface
-
-AstraFlow also provides a headless CLI.
-
-Conceptually:
+AstraFlow supports headless simulation:
 
 ```bash
 astraflow_cli \
@@ -1108,14 +755,14 @@ astraflow_cli \
     --backend cuda
 ```
 
-Backends include:
+Supported backends include:
 
 ```text
 cpu
 cuda
 ```
 
-A command-line simulation can report:
+The CLI reports quantities including:
 
 ```text
 Backend
@@ -1128,21 +775,61 @@ Throat Mach
 Exit Mach
 Exit velocity
 Exit pressure
-Estimated thrust
+Thrust
 Specific impulse
-Mass conservation error
+Mass-conservation error
 Final residual
 ```
 
-This separation is important because scientific verification and performance benchmarking should not require a graphical desktop.
+---
+
+## Interactive GUI
+
+The V1 interface uses:
+
+- Dear ImGui;
+- ImPlot;
+- GLFW;
+- OpenGL.
+
+The GUI uses the same underlying solver as the CLI rather than implementing separate physics.
+
+Planned/implemented controls include:
+
+- Run;
+- Pause;
+- Single Step;
+- Reset;
+- Regenerate Mesh.
+
+Visualisable fields include:
+
+- pressure;
+- density;
+- temperature;
+- Mach number;
+- axial velocity;
+- radial velocity;
+- velocity magnitude;
+- total energy;
+- vorticity.
+
+The interface also exposes:
+
+- residual convergence;
+- nozzle geometry parameters;
+- chamber conditions;
+- engineering quantities;
+- CUDA device information;
+- solver iteration performance.
+
+Simulation execution is separated from GUI rendering through a worker/state model so long-running iterations do not block the interface.
 
 ---
 
-# Performance Objectives
+# Performance Study
 
-A major objective of AstraFlow is to investigate where GPU execution becomes advantageous for finite-volume CFD.
-
-The benchmark programme will compare representative grid sizes such as:
+A dedicated profiling milestone will evaluate representative grids such as:
 
 ```text
 128 × 32
@@ -1151,257 +838,25 @@ The benchmark programme will compare representative grid sizes such as:
 1024 × 256
 ```
 
-where practical.
+subject to practical memory and runtime constraints.
 
-Measurements will include:
+The final report will measure:
 
 | Metric | Purpose |
 |---|---|
-| Grid cells | problem scale |
+| Cell count | problem scale |
 | CPU iteration time | reference performance |
 | CUDA iteration time | GPU performance |
-| Iterations/s | solver throughput |
-| CPU/GPU speedup | acceleration |
+| Iterations/s | numerical throughput |
+| GPU speedup | acceleration |
 | GPU memory | memory scaling |
-| Kernel time | optimisation target |
+| Kernel timings | optimisation analysis |
 
-No arbitrary minimum speedup is being imposed.
+Small problems are expected to expose CUDA launch and synchronisation overhead, while larger meshes provide progressively more parallel work.
 
-For small meshes, CUDA may legitimately be slower than the CPU because launch, synchronisation, and data-management overhead dominate the amount of useful arithmetic.
+No minimum CUDA speedup is assumed in advance. Final performance claims will use measured results only.
 
-The expected crossover toward GPU advantage should occur as the problem becomes sufficiently large and parallel.
-
-The final benchmark report will therefore show the **measured scaling behaviour**, even if it is less impressive than originally expected.
-
----
-
-# CUDA Optimisation Strategy
-
-Optimisation is performed only after correctness.
-
-The planned workflow is:
-
-```text
-Measure
-   ↓
-Profile
-   ↓
-Identify dominant kernel / memory cost
-   ↓
-Optimise targeted bottleneck
-   ↓
-Rerun CPU ↔ GPU parity
-   ↓
-Rerun scientific verification
-   ↓
-Measure again
-```
-
-Likely areas of investigation include:
-
-- memory coalescing;
-- global-memory traffic;
-- temporary buffers;
-- kernel-launch overhead;
-- reduction kernels;
-- warp divergence;
-- occupancy;
-- unnecessary synchronisation;
-- host/device transfers.
-
-Where available, profiling will use NVIDIA tooling such as Nsight Systems, Nsight Compute, and Compute Sanitizer.
-
-Performance changes are not accepted if they invalidate numerical verification.
-
----
-
-# Expected V1 Results
-
-The final V1 should be capable of demonstrating several characteristic features of compressible nozzle flow.
-
-These are **expected physical behaviours**, not pre-recorded result claims.
-
-## Choking
-
-For sufficiently high chamber-to-ambient pressure ratios, the flow should accelerate toward approximately
-
-\[
-M=1
-\]
-
-around the nozzle throat.
-
-This behaviour is already visible in the current inviscid nozzle verification case.
-
----
-
-## Supersonic Expansion
-
-After the throat, the diverging section should support acceleration to
-
-\[
-M>1
-\]
-
-under suitable pressure conditions.
-
-The final GUI should make this immediately visible through Mach-number contours.
-
----
-
-## Pressure Conversion
-
-The nozzle should demonstrate conversion of:
-
-```text
-high pressure / thermal energy
-        ↓
-directed kinetic energy
-```
-
-as gas moves from the chamber through the converging-diverging geometry.
-
----
-
-## Back-Pressure Sensitivity
-
-Changing ambient/back pressure should alter the nozzle solution.
-
-The project is intended eventually to illustrate conditions corresponding to:
-
-- approximately ideal expansion;
-- over-expansion;
-- under-expansion;
-- internal compression/shock behaviour where captured by the model and computational domain.
-
----
-
-## Viscous Effects
-
-Compared with the inviscid solution, the Navier–Stokes model should reveal effects associated with:
-
-- near-wall velocity gradients;
-- viscous stress;
-- thermal conduction;
-- boundary-layer behaviour;
-- changes in effective nozzle performance.
-
----
-
-# Project Architecture
-
-The repository follows a modular layout conceptually similar to:
-
-```text
-AstraFlow/
-│
-├── apps/
-│   ├── cli/
-│   └── gui/
-│
-├── include/
-│   └── astraflow/
-│
-├── src/
-│   ├── core/
-│   ├── cpu/
-│   ├── cuda/
-│   │   ├── kernels/
-│   │   ├── memory/
-│   │   └── reductions/
-│   ├── physics/
-│   ├── numerics/
-│   ├── geometry/
-│   ├── analysis/
-│   ├── io/
-│   └── visualization/
-│
-├── tests/
-│   ├── unit/
-│   ├── verification/
-│   └── regression/
-│
-├── benchmarks/
-│
-├── examples/
-│
-├── scripts/
-│
-├── docs/
-│   ├── mathematics/
-│   ├── architecture/
-│   ├── verification/
-│   └── performance/
-│
-└── .github/
-    └── workflows/
-```
-
-The design maintains separation between:
-
-```text
-Physics
-Numerics
-Geometry
-CPU backend
-CUDA backend
-Analysis
-I/O
-Visualisation
-Applications
-```
-
-One of the project's architectural rules is:
-
-> **CFD mathematics does not belong inside GUI code.**
-
----
-
-# Technology Stack
-
-## Core
-
-- C++20
-- CMake
-- Ninja
-
-## GPU
-
-- NVIDIA CUDA C++
-- native Blackwell `sm_120` target
-- CUDA 12.8-class toolchain
-
-## Interface
-
-- Dear ImGui
-- ImPlot
-- GLFW
-- OpenGL
-
-## Testing
-
-- Catch2
-
-## Configuration
-
-- nlohmann/json
-
-## Scientific Output
-
-- JSON
-- CSV
-- VTK XML StructuredGrid (`.vts`)
-
-## Auxiliary Tooling
-
-Python may be used for:
-
-- reference calculations;
-- plotting;
-- benchmark processing;
-- scientific analysis.
-
-It is not the production CFD implementation.
+<!-- Add final benchmark graph here. -->
 
 ---
 
@@ -1409,7 +864,7 @@ It is not the production CFD implementation.
 
 ## Requirements
 
-The CPU build requires approximately:
+CPU builds require:
 
 ```text
 CMake >= 3.24
@@ -1417,20 +872,19 @@ Ninja
 C++20-compatible compiler
 ```
 
-The CUDA build additionally requires a CUDA toolchain capable of targeting the GPU architecture selected at configuration time.
+CUDA builds additionally require an NVIDIA CUDA toolchain capable of targeting the selected GPU architecture.
 
-For the primary AstraFlow development machine:
+The primary development configuration targets:
 
 ```text
-NVIDIA RTX 5070 Laptop GPU
-Blackwell
-Compute Capability 12.0
+NVIDIA Blackwell
+compute_120
 sm_120
 ```
 
 ---
 
-## CPU Build
+## CPU
 
 ```bash
 cmake \
@@ -1445,7 +899,7 @@ cmake --build build-cpu
 
 ---
 
-## CUDA Build
+## CUDA
 
 ```bash
 cmake \
@@ -1460,7 +914,7 @@ cmake --build build
 
 ---
 
-## Run Tests
+## Tests
 
 ```bash
 ctest \
@@ -1468,7 +922,7 @@ ctest \
     --output-on-failure
 ```
 
-CPU-only verification can similarly use:
+CPU-only testing:
 
 ```bash
 ctest \
@@ -1478,414 +932,179 @@ ctest \
 
 ---
 
-# Dependencies
+# Technology
 
-The dependency policy is intentionally conservative.
-
-Current lightweight dependencies include:
-
-| Dependency | Purpose |
+| Area | Technology |
 |---|---|
-| `nlohmann/json 3.11.3` | simulation configuration and structured output |
-| `Catch2 3.7.1` | unit and verification testing |
-| Dear ImGui | interactive interface |
-| ImPlot | numerical/convergence plots |
-| GLFW | window/input handling |
-| OpenGL | visualisation rendering |
-| CUDA Runtime | GPU execution |
+| Core implementation | C++20 |
+| GPU computing | CUDA C++ |
+| Build system | CMake + Ninja |
+| Configuration | nlohmann/json |
+| Testing | Catch2 |
+| GUI | Dear ImGui |
+| Plotting | ImPlot |
+| Windowing | GLFW |
+| Rendering | OpenGL |
+| Scientific output | JSON / CSV / VTK StructuredGrid |
+| CI | GitHub Actions |
 
-Upstream licenses remain applicable to their respective dependencies.
+Current pinned core dependencies include:
 
-AstraFlow itself is released under the MIT License.
+- `nlohmann/json 3.11.3`;
+- `Catch2 3.7.1`.
+
+Third-party components retain their respective upstream licences.
+
+---
+
+# Architecture
+
+The repository is organised around explicit separation of numerical and application concerns:
+
+```text
+AstraFlow/
+├── apps/
+│   ├── cli/
+│   └── gui/
+├── include/
+│   └── astraflow/
+├── src/
+│   ├── core/
+│   ├── cpu/
+│   ├── cuda/
+│   ├── physics/
+│   ├── numerics/
+│   ├── geometry/
+│   ├── analysis/
+│   ├── io/
+│   └── visualization/
+├── tests/
+│   ├── unit/
+│   ├── verification/
+│   └── regression/
+├── benchmarks/
+├── examples/
+├── scripts/
+├── docs/
+└── .github/
+```
+
+The main architectural boundaries are:
+
+```text
+Mathematics / physics
+        ↓
+Numerical methods
+        ↓
+CPU / CUDA backends
+        ↓
+Analysis and I/O
+        ↓
+CLI / GUI
+```
+
+**Physics and numerical algorithms are not implemented inside GUI code.**
 
 ---
 
 # Development Milestones
 
-## Milestone 0 — Toolchain and Repository
-
-**Status: COMPLETE**
-
-- project scaffold;
-- CMake;
-- CPU compilation;
-- CUDA compilation;
-- RTX 5070 execution;
-- native `sm_120` validation;
-- test infrastructure.
-
----
-
-## Milestone 1 — CPU Euler Solver
-
-**Status: COMPLETE**
-
-- primitive/conservative state;
-- thermodynamics;
-- HLLC;
-- HLLE fallback;
-- MUSCL;
-- limiters;
-- CFL;
-- SSP-RK2;
-- Sod shock tube;
-- conservation tests.
+| Milestone | Scope | Status |
+|---|---|---|
+| M0 | Toolchain, CMake, CUDA `sm_120`, repository | Complete |
+| M1 | Verified 1D CPU Euler solver | Complete |
+| M2 | CUDA Euler backend and CPU/GPU parity | Complete |
+| M3 | Verified 2D finite-volume infrastructure | Complete |
+| M4 | Axisymmetric rocket-nozzle solver | Complete |
+| M5 | Viscous compressible Navier–Stokes | Complete |
+| M6 | Engineering analysis, CLI and output | Complete |
+| M7 | Interactive GUI | In progress |
+| M8 | CUDA profiling and optimisation | Pending |
+| M9 | Final V1 scientific acceptance | Pending |
 
 ---
 
-## Milestone 2 — CUDA Euler Solver
+# V1 Scope Boundary
 
-**Status: COMPLETE**
+AstraFlow V1 deliberately excludes:
 
-- GPU timestep execution;
-- FP32;
-- FP64;
-- CPU/GPU parity;
-- CUDA validation.
+- reacting combustion chemistry;
+- multi-species transport;
+- turbulence models;
+- LES;
+- full 3D geometry;
+- external exhaust-plume simulation;
+- adaptive mesh refinement;
+- conjugate wall heat transfer;
+- regenerative cooling;
+- real-gas thermodynamics;
+- multi-GPU execution.
 
----
-
-## Milestone 3 — 2D Finite Volumes
-
-**Status: COMPLETE**
-
-- 2D cells/faces;
-- gradients;
-- multidimensional fluxes;
-- CPU backend;
-- CUDA backend;
-- conservation verification.
+These are candidate extensions after the baseline solver has completed numerical and architectural acceptance.
 
 ---
 
-## Milestone 4 — Axisymmetric Rocket Nozzle
+# Planned Extensions
 
-**Status: COMPLETE**
+Following V1, potential development directions include:
 
-- nozzle geometry;
-- body-conforming structured mesh;
-- axisymmetric terms;
-- inlet/outlet treatment;
-- sonic throat behaviour;
-- quasi-1D comparison.
+- external under-expanded and over-expanded plume simulation;
+- temperature-dependent thermodynamics;
+- multi-species reacting flow;
+- turbulence modelling;
+- wall heat-flux analysis;
+- conjugate heat transfer;
+- regenerative-cooling studies;
+- CUDA/OpenGL interoperability;
+- further CUDA kernel optimisation;
+- nozzle geometry optimisation;
+- larger and eventually three-dimensional simulations.
 
----
-
-## Milestone 5 — Compressible Navier–Stokes
-
-**Status: COMPLETE**
-
-- Newtonian viscous stress;
-- gradients;
-- viscosity;
-- heat conduction;
-- no-slip adiabatic wall;
-- Couette verification;
-- CUDA parity.
-
----
-
-## Milestone 6 — Engineering Analysis / CLI / Output
-
-**Status: COMPLETE**
-
-- configuration loading;
-- CLI;
-- mass flow;
-- exit quantities;
-- thrust;
-- specific impulse;
-- conservation metrics;
-- residual history;
-- JSON;
-- CSV;
-- VTK StructuredGrid.
-
----
-
-## Milestone 7 — Interactive GUI
-
-**Status: IN PROGRESS**
-
-The implementation includes the solver worker/state architecture and GUI controls. Final rendering and WSLg acceptance testing remain underway.
-
----
-
-## Milestone 8 — CUDA Performance Pass
-
-**Status: PENDING**
-
-Will include:
-
-- Release benchmarking;
-- CUDA profiling;
-- bottleneck identification;
-- targeted optimisation;
-- post-optimisation scientific regression.
-
----
-
-## Milestone 9 — Final Phase 1 Acceptance
-
-**Status: PENDING**
-
-Will include:
-
-- complete CPU build;
-- complete CUDA build;
-- verification suite;
-- grid refinement;
-- CPU/GPU rocket runs;
-- GUI acceptance;
-- runtime diagnostics;
-- documentation;
-- repository audit.
-
----
-
-# Continuous Integration
-
-AstraFlow includes CPU-focused CI so that the numerical core can be compiled and tested without requiring an NVIDIA GPU on the CI runner.
-
-The CI pipeline is intended to cover:
-
-```text
-CMake configuration
-CPU compilation
-unit tests
-small verification tests
-```
-
-CUDA verification and GPU performance testing are performed on the actual Blackwell development hardware.
+Future additions will be introduced only where they can be independently verified.
 
 ---
 
 # Scientific Integrity
 
-AstraFlow is a portfolio project, but numerical credibility takes precedence over producing impressive screenshots or benchmark claims.
+AstraFlow follows several project-level rules:
 
-The project therefore follows several rules.
+- numerical results must be verified rather than inferred from appearance;
+- CUDA results must be compared against a reference implementation;
+- tolerances must not be loosened solely to make tests pass;
+- NaN, non-finite, negative-density, and negative-pressure states are treated as failures;
+- benchmark results must be measured rather than estimated;
+- numerical limitations must be documented;
+- the ideal-gas nozzle model must not be presented as complete rocket-engine physics;
+- performance optimisation must preserve verification results.
 
-### No fabricated validation
-
-A test is not marked as passing merely because a result looks plausible.
-
-### No fabricated acceleration
-
-CUDA speedup figures are reported from actual measurements.
-
-### No artificially loose tolerances
-
-Numerical tolerances should represent reasonable floating-point and discretisation behaviour rather than values chosen simply to make CI green.
-
-### No hidden instability
-
-NaN, negative-density, negative-pressure, and invalid-state behaviour is explicitly detected.
-
-### No overstated physical fidelity
-
-A calorically perfect ideal-gas nozzle simulation is not presented as a complete simulation of a chemically reacting rocket engine.
-
-### No claim of solving the Navier–Stokes Millennium Problem
-
-Numerical CFD and the mathematical existence/smoothness question are distinct problems.
+AstraFlow numerically solves a discretised compressible Euler/Navier–Stokes model. It makes no claim regarding the mathematical Navier–Stokes existence-and-smoothness problem.
 
 ---
 
-# Limitations of V1
+# Author
 
-The first AstraFlow release should be understood as a **verified CFD foundation**, not as a production aerospace design package.
+**Arnav**  
+BSc Computer Science with Artificial Intelligence  
+University of Nottingham
 
-Important limitations include:
+Project roles:
 
-- axisymmetric rather than general 3D geometry;
-- ideal-gas thermodynamics;
-- single species;
-- no combustion chemistry;
-- no turbulence closure;
-- no external exhaust plume;
-- no adaptive mesh refinement;
-- no wall-material heat conduction;
-- no experimental calibration;
-- no certification-grade validation;
-- consumer-GPU-oriented architecture.
-
-These constraints are deliberate.
-
-They create a sufficiently complex system for serious CFD/HPC work while retaining a verification scope that can be independently understood and tested.
-
----
-
-# Future Development
-
-Once V1 has passed its final acceptance review, possible future directions include:
-
-## External Plume Simulation
-
-Extend the domain beyond the nozzle exit to investigate:
-
-- under-expanded jets;
-- over-expanded jets;
-- expansion structures;
-- shock cells;
-- plume interaction.
-
-## Higher-Fidelity Thermodynamics
-
-Introduce:
-
-- temperature-dependent specific heats;
-- improved viscosity models;
-- species thermodynamics.
-
-## Reacting Flow
-
-Potentially incorporate:
-
-- multiple species;
-- reaction kinetics;
-- combustion modelling.
-
-## Turbulence
-
-Investigate models such as:
-
-- RANS;
-- \(k-\omega\) SST;
-- eventually LES for suitable research cases.
-
-## Thermal Analysis
-
-Extend toward:
-
-- wall heat flux;
-- conjugate heat transfer;
-- regenerative cooling studies.
-
-## Advanced GPU Optimisation
-
-Potential directions include:
-
-- CUDA/OpenGL interoperability;
-- more aggressive kernel fusion;
-- asynchronous execution;
-- improved reduction algorithms;
-- memory-layout experiments;
-- multi-GPU execution.
-
-## Nozzle Optimisation
-
-Use the CFD solver as the evaluation engine for parameterised nozzle-design studies.
-
-Potential objectives include:
-
-- thrust;
-- specific impulse;
-- pressure matching;
-- wall loading;
-- efficiency.
-
----
-
-# What I Am Learning Through AstraFlow
-
-AstraFlow is intentionally broader than a single programming exercise.
-
-It provides practical experience with:
-
-### Applied Mathematics
-
-- conservation laws;
-- PDE discretisation;
-- Riemann problems;
-- stability;
-- truncation error;
-- convergence;
-- dimensional analysis.
-
-### Fluid Dynamics
-
-- compressible flow;
-- shocks;
-- sonic conditions;
-- nozzle expansion;
-- viscosity;
-- heat conduction.
-
-### Numerical Methods
-
-- finite-volume schemes;
-- reconstruction;
-- slope limiting;
-- Runge–Kutta integration;
-- CFL stability;
-- verification methodology.
-
-### High-Performance Computing
-
-- CUDA kernels;
-- GPU memory;
-- floating-point behaviour;
-- parallel reductions;
-- profiling;
-- CPU/GPU scaling.
-
-### Software Engineering
-
-- modular C++;
-- CMake;
-- backend abstraction;
-- configuration;
-- automated testing;
-- reproducible output;
-- CI;
-- technical documentation.
-
-### AI-Assisted Engineering
-
-Perhaps most importantly, the project is helping me investigate how AI coding systems can be used productively in technical work without outsourcing understanding.
-
-The objective is not to remove myself from the mathematical or engineering process.
-
-It is to use AI to accelerate implementation while retaining responsibility for:
-
-- the model;
-- the assumptions;
-- the architecture;
-- the tests;
-- the interpretation;
-- the final technical judgement.
-
----
-
-# Repository Status
-
-Phase 1 development is ongoing.
-
-For the detailed live milestone ledger, see:
-
-[`docs/PHASE1_STATUS.md`](docs/PHASE1_STATUS.md)
-
-The README will be updated with:
-
-- final GUI screenshots;
-- final CFD visualisations;
-- complete grid-convergence data;
-- CPU/GPU benchmark plots;
-- profiling results;
-- final V1 acceptance metrics
-
-after the corresponding milestones have passed.
+- mathematical formulation;
+- numerical architecture;
+- CFD system design;
+- CUDA architecture;
+- verification strategy;
+- software architecture;
+- technical review;
+- AI-assisted implementation direction.
 
 ---
 
 # License
 
-AstraFlow is licensed under the **MIT License**.
+AstraFlow is released under the **MIT License**.
 
-Third-party software retains its respective upstream licensing.
-
-NVIDIA CUDA and associated NVIDIA tooling remain subject to NVIDIA's applicable license terms.
+Third-party libraries retain their respective upstream licences. NVIDIA CUDA and associated tooling remain subject to NVIDIA's applicable licence terms.
 
 ---
 
@@ -1893,30 +1112,6 @@ NVIDIA CUDA and associated NVIDIA tooling remain subject to NVIDIA's applicable 
 
 AstraFlow is an educational, research, and portfolio scientific-computing project.
 
-It is **not** flight-qualified aerospace software and should not be used as the sole basis for safety-critical rocket-engine design, manufacturing, or operation.
+It is not flight-qualified software and should not be used as the sole basis for safety-critical aerospace design, manufacture, or operation.
 
-Its results should be interpreted according to the assumptions, discretisation, numerical error, verification evidence, and physical limitations documented in the repository.
-
----
-
-## Author
-
-**Arnav**
-
-BSc Computer Science with Artificial Intelligence  
-University of Nottingham
-
-Interests:
-
-- scientific computing;
-- artificial intelligence;
-- numerical methods;
-- GPU computing;
-- high-performance computing;
-- computational science.
-
----
-
-> **AstraFlow's objective is not simply to make fluid move on a screen.**
->
-> It is to understand how the mathematics of conservation laws becomes reliable numerical software, how that software maps onto massively parallel GPU hardware, and how the resulting computation can be verified before its output is trusted.
+Results must be interpreted within the numerical assumptions, discretisation error, model fidelity, and verification evidence documented by the project.
