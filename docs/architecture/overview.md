@@ -21,3 +21,7 @@ Snapshots are immutable shared objects containing mesh, physical state, gas prop
 The meridional field is displayed as piecewise-constant cell colours, mirrored about the axis for nozzle cases. Radial display magnification is explicitly labelled. Mouse wheel zoom and middle-button pan change the view only. Every RK stage continues independently of drawing. No CUDA/OpenGL interoperability is used in V1.
 
 Pinned GUI dependencies: Dear ImGui 1.91.8 (MIT), ImPlot 0.16 (MIT), GLFW 3.4 (zlib/libpng). Their licenses remain in fetched sources. Ubuntu GUI headers can be extracted locally with `bash scripts/bootstrap_gui.sh`; the existing system OpenGL/X11 runtime is reused without installation or driver changes.
+
+## Performance instrumentation
+
+Optional CUDA events bracket primitive conversion, CFL/reduction and timestep transfer, gradients, convective/viscous faces, residual assembly, RK updates and diagnostic reductions/transfers. Reusable events are allocated with the solver. The normal pipeline leaves stage markers disabled. A single CUB reduction computes the four RMS residual sums directly from residual fields; no residual-square device planes or timestep allocations remain. The benchmark compares equal precision and records warmup, grid, timings, memory and conservative parity norms.

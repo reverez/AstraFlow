@@ -9,7 +9,7 @@ struct Settings {
     Gas gas;
     double cfl = 0.4;
     Limiter limiter = Limiter::MC;
-    bool no_slip = false;
+    bool no_slip = false, profile = false;
     double p0 = 1, t0 = 1, back_pressure = 0.1;
     double wall_temperature = 0, upper_wall_speed = 0;
 };
@@ -17,6 +17,7 @@ struct StepStats {
     int iterations = 0;
     double time = 0, dt = 0, iteration_ms = 0, total_ms = 0;
     std::array<double, 4> residual{};
+    std::array<double, 7> stage_ms{};
     std::uint64_t flux_fallbacks = 0, reconstruction_fallbacks = 0;
     std::size_t device_bytes = 0;
 };

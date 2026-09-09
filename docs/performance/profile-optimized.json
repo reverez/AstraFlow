@@ -1,0 +1,42 @@
+{
+  "device": "NVIDIA GeForce RTX 5070 Laptop GPU\nCompute capability: 12.0\nGlobal memory (bytes): 8518041600\nCUDA runtime: 12080\nExecuted kernel architecture: sm_120",
+  "iterations": 30,
+  "precision": "FP32 CPU and GPU",
+  "profile_enabled": true,
+  "results": [
+    {
+      "cells": 65536,
+      "cpu_iteration_ms": 27.592667866666666,
+      "cpu_wall_ms": 27.594128366666666,
+      "device_bytes": 25496871,
+      "gpu_iteration_ms": 0.7590090612570445,
+      "gpu_wall_ms": 0.8139066666666667,
+      "iterations_per_second": 1317.5073277041445,
+      "nr": 128,
+      "nx": 512,
+      "parity_L1": 2.1844658990646228e-07,
+      "parity_L2": 5.590384849420842e-07,
+      "parity_max": 5.9604644775390625e-06,
+      "speedup": 36.35354210524002,
+      "stage_ms": [
+        0.10818560030311346,
+        0.11187733287612599,
+        0.1130677341793974,
+        0.10427840016782282,
+        0.055268266734977554,
+        0.0215829332669576,
+        0.18403199911117554
+      ]
+    }
+  ],
+  "stage_names": [
+    "primitive_conversion",
+    "CFL_and_host_dt",
+    "gradients",
+    "convective_viscous_faces",
+    "residual_assembly",
+    "RK_update",
+    "diagnostic_reductions_and_transfers"
+  ],
+  "warmup_iterations": 20
+}

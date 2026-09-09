@@ -87,4 +87,28 @@ TEST_CASE("Viscous CUDA CPU parity in both precisions", "[cuda]") {
         REQUIRE(error < (fp64 ? 1e-10 : 5e-5));
     }
 }
+TEST_CASE("CUDA profiling preserves solution and reports stage intervals", "[cuda]") {
+    Nozzle g;
+    g.nx = 16;
+    g.nr = 8;
+    auto mesh = nozzle_mesh(g);
+    Settings s;
+    s.no_slip = true;
+    s.gas.viscosity = 1e-4;
+    auto plain = make_cuda_solver(mesh, s, true);
+    s.profile = true;
+    auto profiled = make_cuda_solver(mesh, s, true);
+    auto w = nozzle_initial_state(mesh, g, s);
+    plain->initialize(w);
+    profiled->initialize(w);
+    for (int i = 0; i < 5; ++i) {
+        plain->step();
+        profiled->step();
+    }
+    REQUIRE(plain->state() == profiled->state());
+    for (double ms : profiled->stats().stage_ms) {
+        REQUIRE(std::isfinite(ms));
+        REQUIRE(ms > 0);
+    }
+}
 #endif

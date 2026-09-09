@@ -1,0 +1,114 @@
+{
+  "device": "NVIDIA GeForce RTX 5070 Laptop GPU\nCompute capability: 12.0\nGlobal memory (bytes): 8518041600\nCUDA runtime: 12080\nExecuted kernel architecture: sm_120",
+  "iterations": 50,
+  "precision": "FP32 CPU and GPU",
+  "profile_enabled": false,
+  "results": [
+    {
+      "cells": 4096,
+      "cpu_iteration_ms": 1.6447246000000002,
+      "cpu_wall_ms": 1.64502836,
+      "device_bytes": 1667625,
+      "gpu_iteration_ms": 0.47580287873744964,
+      "gpu_wall_ms": 0.51833962,
+      "iterations_per_second": 2101.7106971977882,
+      "nr": 32,
+      "nx": 128,
+      "parity_L1": 2.1920480069574947e-07,
+      "parity_L2": 3.3882543137900624e-07,
+      "parity_max": 3.337860107421875e-06,
+      "speedup": 3.456735285764354,
+      "stage_ms": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "cells": 16384,
+      "cpu_iteration_ms": 7.306654400000002,
+      "cpu_wall_ms": 7.30781628,
+      "device_bytes": 6649383,
+      "gpu_iteration_ms": 0.6435168033838272,
+      "gpu_wall_ms": 0.69042598,
+      "iterations_per_second": 1553.9609762195246,
+      "nr": 64,
+      "nx": 256,
+      "parity_L1": 2.1584873117377174e-07,
+      "parity_L2": 3.6593766476461945e-07,
+      "parity_max": 5.4836273193359375e-06,
+      "speedup": 11.354255804322687,
+      "stage_ms": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "cells": 65536,
+      "cpu_iteration_ms": 30.025342779999978,
+      "cpu_wall_ms": 30.0268568,
+      "device_bytes": 26532391,
+      "gpu_iteration_ms": 0.6641727995872497,
+      "gpu_wall_ms": 0.71062278,
+      "iterations_per_second": 1505.632270128271,
+      "nr": 128,
+      "nx": 512,
+      "parity_L1": 2.298046425561987e-07,
+      "parity_L2": 5.764680008342074e-07,
+      "parity_max": 7.62939453125e-06,
+      "speedup": 45.20712501123086,
+      "stage_ms": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "cells": 262144,
+      "cpu_iteration_ms": 118.69563467999997,
+      "cpu_wall_ms": 118.69693892,
+      "device_bytes": 106013223,
+      "gpu_iteration_ms": 2.0907615995407105,
+      "gpu_wall_ms": 2.14535222,
+      "iterations_per_second": 478.2946081560307,
+      "nr": 256,
+      "nx": 1024,
+      "parity_L1": 2.96977754019375e-07,
+      "parity_L2": 6.771467827728781e-07,
+      "parity_max": 4.5299530029296875e-06,
+      "speedup": 56.77148207910195,
+      "stage_ms": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "stage_names": [
+    "primitive_conversion",
+    "CFL_and_host_dt",
+    "gradients",
+    "convective_viscous_faces",
+    "residual_assembly",
+    "RK_update",
+    "diagnostic_reductions_and_transfers"
+  ],
+  "warmup_iterations": 20
+}

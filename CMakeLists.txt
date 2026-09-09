@@ -53,3 +53,8 @@ endif()
 if(ASTRAFLOW_BUILD_GUI)
   include(cmake/Gui.cmake)
 endif()
+
+if(ASTRAFLOW_BUILD_BENCHMARKS)
+  add_executable(astraflow_benchmark benchmarks/solver.cpp)
+  target_link_libraries(astraflow_benchmark PRIVATE astraflow)
+endif()

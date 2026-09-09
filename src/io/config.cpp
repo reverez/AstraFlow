@@ -69,7 +69,10 @@ nlohmann::json Config::json() const {
               {"wall", settings.no_slip ? "no_slip" : "slip"},
               {"wall_temperature", settings.wall_temperature},
               {"upper_wall_speed", settings.upper_wall_speed}}},
-            {"numerics", {{"cfl", settings.cfl}, {"limiter", limiter_name(settings.limiter)}}},
+            {"numerics",
+             {{"cfl", settings.cfl},
+              {"limiter", limiter_name(settings.limiter)},
+              {"profile", settings.profile}}},
             {"runtime",
              {{"backend", backend},
               {"precision", precision},
@@ -124,7 +127,8 @@ Config Config::parse(const nlohmann::json &j) {
     if (wall != "slip" && wall != "no_slip")
         throw std::invalid_argument("Unknown wall type");
     c.settings.no_slip = wall == "no_slip";
-    auto nu = read("numerics", {"cfl", "limiter"});
+    auto nu = read("numerics", {"cfl", "limiter", "profile"});
+    c.settings.profile = nu.value("profile", false);
     c.settings.cfl = nu.value("cfl", c.settings.cfl);
     auto limiter = nu.value("limiter", std::string("mc"));
     if (limiter == "mc")

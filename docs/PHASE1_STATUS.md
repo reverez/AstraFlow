@@ -14,7 +14,7 @@ See [environment.md](environment.md). Project-local CUDA 12.8.93 installed; SM12
 - [x] M5 Viscous Navier–Stokes
 - [x] M6 Engineering analysis / output
 - [x] M7 Interactive GUI
-- [ ] M8 Performance
+- [x] M8 Performance
 - [ ] M9 Final verification
 
 ## Current blocker
@@ -23,7 +23,7 @@ GitHub CLI has no authenticated host; remote creation deferred. Local developmen
 
 ## Latest validation
 
-M7 WSLg OpenGL/GLFW GUI starts and completes scripted Run/Pause/Step/Reset/Regenerate actions plus all nine field selections. Actual framebuffer captured and visually inspected; live residual axis now follows the iteration history. Worker/snapshot tests pass 1,465 assertions, including exactly-one-step and invalid-regeneration rejection. Fresh Release CPU/CUDA builds at the user-selected `/home/arnav/dev/projects/portfolio/AstraFlow` pass complete suites. User commit ecbabed is preserved.
+M8 all scientific and CUDA parity tests pass after reduction optimization. Equal-FP32 benchmarks cover 128x32 through 1024x256. Largest-grid GPU 1.98721 ms/iteration versus CPU 121.539 ms, measured 61.16x; buffer use 101,831,975 bytes. Diagnostic-stage event interval decreased 0.306395 -> 0.184032 ms at 512x128; smallest-grid sample regressed and is reported honestly. Instrumentation preserves solution exactly. Raw before/after results and methodology recorded in docs/performance/.
 
 ## Execution plan
 
