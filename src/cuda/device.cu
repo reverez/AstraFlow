@@ -1,4 +1,5 @@
 #include "astraflow/core/device.hpp"
+#include "memory/resources.cuh"
 #include <cuda_runtime.h>
 #include <sstream>
 #include <stdexcept>
@@ -19,16 +20,10 @@ std::string device_info() {
     check(cudaGetDeviceProperties(&p, 0));
     int runtime = 0;
     check(cudaRuntimeGetVersion(&runtime));
-    int *device = nullptr;
-    check(cudaMalloc(&device, sizeof(int)));
-    architecture_probe<<<1, 1>>>(device);
-    auto launch = cudaGetLastError();
-    int architecture = 0;
-    auto copy = cudaMemcpy(&architecture, device, sizeof(int), cudaMemcpyDeviceToHost);
-    auto release = cudaFree(device);
-    check(launch);
-    check(copy);
-    check(release);
+    cuda::Buffer<int> device(1);
+    architecture_probe<<<1, 1>>>(device.data());
+    AF_CUDA(cudaGetLastError());
+    int architecture = device.download()[0];
     std::ostringstream out;
     out << p.name << "\nCompute capability: " << p.major << '.' << p.minor
         << "\nGlobal memory (bytes): " << p.totalGlobalMem << "\nCUDA runtime: " << runtime
