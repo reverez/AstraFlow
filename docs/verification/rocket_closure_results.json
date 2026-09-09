@@ -1,0 +1,797 @@
+{
+  "scientific_acceptance": false,
+  "reason": "256x64 fails residual and existing inlet/exit estimate criteria; refinement halted",
+  "baseline_cuda": {
+    "backend": "cuda",
+    "chamber_to_exit_pressure_ratio": 11.298427128968996,
+    "converged": true,
+    "convergence_window": {
+      "absolute_residual_target": 1e-06,
+      "end_iteration": 82480,
+      "mass_mismatch_target": 0.001,
+      "minimum_iterations": 5000,
+      "observable_relative_range_target": 0.0005,
+      "relative_residual_target": 0.0,
+      "required_iterations": 2000,
+      "samples": 101,
+      "sampling_interval": 20,
+      "start_iteration": 80480,
+      "station_spread_target": 0.002
+    },
+    "estimated_thrust": 171.00769625646518,
+    "exit_area": 0.0001431388152791849,
+    "exit_axial_velocity": 1677.7157805970564,
+    "exit_mach": 2.2177060829451216,
+    "exit_pressure": 162795.2398205684,
+    "exit_temperature": 1411.760526225078,
+    "final_residuals": [
+      2.5795972292411587e-07,
+      3.147560337947741e-08,
+      1.966368165885185e-07,
+      8.559839016117584e-07
+    ],
+    "flux_fallbacks": 0,
+    "grid": [
+      128,
+      32
+    ],
+    "ideal_gas_estimate": true,
+    "initial_residuals": [
+      0.00047927306315918546,
+      0.0012640132105116808,
+      0.001175294237412564,
+      0.0016776083462134719
+    ],
+    "inlet_mass_flow": 0.09668098257719338,
+    "iterations": 82480,
+    "mass_conservation_error": 3.5184911127122975e-05,
+    "mass_flow": 0.09668438529909733,
+    "mass_flow_spread": 0.00044682938468974944,
+    "observable_stability": {
+      "estimated_thrust": {
+        "maximum": 171.00769675397567,
+        "mean": 171.00769518949448,
+        "minimum": 171.0076936449205,
+        "relative_drift": -3.0000757650651213e-10,
+        "relative_range": 1.818079103452033e-08,
+        "relative_stddev": 6.184841436868004e-09
+      },
+      "exit_mach": {
+        "maximum": 2.217706083833218,
+        "mean": 2.2177060808934432,
+        "minimum": 2.2177060780511124,
+        "relative_drift": -3.668632382939183e-11,
+        "relative_range": 2.6072460687687736e-09,
+        "relative_stddev": 8.909806422712808e-10
+      },
+      "exit_pressure": {
+        "maximum": 162795.24015426167,
+        "mean": 162795.23913919192,
+        "minimum": 162795.23813494,
+        "relative_drift": -2.2342691778004015e-10,
+        "relative_range": 1.2404058454358705e-08,
+        "relative_stddev": 4.209983675498316e-09
+      },
+      "mass_conservation_error": {
+        "maximum": 3.5186565920942424e-05,
+        "mean": 3.5179674368184765e-05,
+        "minimum": 3.51727259928105e-05,
+        "relative_drift": -2.022778523209593e-06,
+        "relative_range": 0.0003934069425167785,
+        "relative_stddev": 0.00013432235775297103
+      },
+      "mass_flow": {
+        "maximum": 0.09668438550285217,
+        "mean": 0.09668438485776151,
+        "minimum": 0.09668438422169025,
+        "relative_drift": -2.1445133886915414e-10,
+        "relative_range": 1.325097044814597e-08,
+        "relative_stddev": 4.5101513310434736e-09
+      },
+      "mass_flow_spread": {
+        "maximum": 0.00044685949408243244,
+        "mean": 0.0004468413374290348,
+        "minimum": 0.0004468229682547173,
+        "relative_drift": 1.6755361063821306e-06,
+        "relative_range": 8.174227551398559e-05,
+        "relative_stddev": 2.7622924637755763e-05
+      },
+      "specific_impulse": {
+        "maximum": 180.3593413942708,
+        "mean": 180.35934094761603,
+        "minimum": 180.35934050513163,
+        "relative_drift": -8.555622775862463e-11,
+        "relative_range": 4.929820559856415e-09,
+        "relative_stddev": 1.6748052844401862e-09
+      },
+      "throat_mach": {
+        "maximum": 1.0067710756289885,
+        "mean": 1.0067710712363385,
+        "minimum": 1.0067710668553556,
+        "relative_drift": 5.503124649545993e-10,
+        "relative_range": 8.714625580675645e-09,
+        "relative_stddev": 2.886842050081817e-09
+      }
+    },
+    "precision": "double",
+    "reconstruction_fallbacks": 0,
+    "residual_reduction_factors": [
+      1857.9375792715261,
+      40158.50610621931,
+      5976.979579932788,
+      1959.8596925183424
+    ],
+    "residuals_nondimensional": [
+      2.5795972292411587e-07,
+      3.147560337947741e-08,
+      1.966368165885185e-07,
+      8.559839016117584e-07
+    ],
+    "simulated_time": 0.004046756835553308,
+    "specific_impulse": 180.35934124964703,
+    "termination": "steady_converged",
+    "termination_reason": "steady_converged",
+    "throat_mach": 1.0067710749467242,
+    "performance": {
+      "cells": 4096,
+      "device_bytes": 2311227,
+      "mean_iteration_ms": 0.7264464923195996,
+      "reference_scales": {
+        "density": 2.4888003982080638,
+        "length": 0.0045,
+        "pressure": 2000000.0,
+        "temperature": 2800.0,
+        "time": 5.019870917848052e-06,
+        "velocity": 896.4373932405988
+      },
+      "solver_ms": 59917.30668652058,
+      "wall_ms": 64689.289385
+    },
+    "provenance": {
+      "request": {
+        "config": {
+          "problem": "rocket_nozzle",
+          "gas": {
+            "gamma": 1.4,
+            "gas_constant": 287.0,
+            "prandtl": 0.72,
+            "viscosity": 4e-05
+          },
+          "geometry": {
+            "chamber_radius": 0.006,
+            "chamber_length": 0.03,
+            "throat_radius": 0.0045,
+            "contraction_length": 0.06,
+            "exit_radius": 0.00675,
+            "expansion_length": 0.12
+          },
+          "mesh": {
+            "nx": 128,
+            "nr": 32
+          },
+          "boundary_conditions": {
+            "P0": 2000000,
+            "T0": 2800,
+            "back_pressure": 101325,
+            "wall": "no_slip",
+            "wall_temperature": 0
+          },
+          "numerics": {
+            "cfl": 0.4,
+            "limiter": "mc"
+          },
+          "runtime": {
+            "backend": "cuda",
+            "precision": "double",
+            "max_iterations": 150000,
+            "residual_tolerance": 1e-06
+          },
+          "output": {
+            "interval": 20
+          },
+          "convergence": {
+            "minimum_iterations": 5000,
+            "sampling_interval": 20,
+            "window_iterations": 2000,
+            "relative_residual_target": 0,
+            "observable_tolerance": 0.0005,
+            "mass_mismatch_tolerance": 0.001,
+            "station_spread_tolerance": 0.002
+          }
+        },
+        "cli_sha256": "c2695d24b5ffb33aab6882ed5763a7e6a49ba724b17aa8158741f4bab0cd44ea"
+      },
+      "source_commit": "d633059b2abcd02b8ef71ada8a06cbe7cb84d700",
+      "exit_code": 0,
+      "wall_seconds": 65.10460472106934,
+      "sha256": {
+        "config.json": "d7eff7ebb1776307c86ce335d7afb8f35207839041d602ffd22c70e414f521f5",
+        "summary.json": "c63d0ab169a04c74152c36603ba8d99a8dbf3323c2b932cf369539ed5f5782e3",
+        "performance.json": "64da7df0a92e0493311d9f23cfd6aacd56bf534302359757d787fe273a0d8c21",
+        "engineering.csv": "0ecbde8616c81465989bdb63d7990e539d38d3b06937d2e200f9db4e9c0e26ef",
+        "convergence.csv": "916347e2f45f9b81991049ee12ed3a8da0528cf6f0563bf9f05696d52fdfebc7",
+        "final_state.vts": "2808764493c9c3fe7c0bc9a559cb4f6917c7c35c6b25414207b1c7ea4abcc995"
+      }
+    }
+  },
+  "baseline_cpu": {
+    "backend": "cpu",
+    "chamber_to_exit_pressure_ratio": 11.298427128969003,
+    "converged": true,
+    "convergence_window": {
+      "absolute_residual_target": 1e-06,
+      "end_iteration": 82480,
+      "mass_mismatch_target": 0.001,
+      "minimum_iterations": 5000,
+      "observable_relative_range_target": 0.0005,
+      "relative_residual_target": 0.0,
+      "required_iterations": 2000,
+      "samples": 101,
+      "sampling_interval": 20,
+      "start_iteration": 80480,
+      "station_spread_target": 0.002
+    },
+    "estimated_thrust": 171.0076962564654,
+    "exit_area": 0.0001431388152791849,
+    "exit_axial_velocity": 1677.715780597057,
+    "exit_mach": 2.217706082945123,
+    "exit_pressure": 162795.23982056833,
+    "exit_temperature": 1411.7605262250765,
+    "final_residuals": [
+      2.5795972344143314e-07,
+      3.147560310028462e-08,
+      1.9663681685220624e-07,
+      8.559839032337628e-07
+    ],
+    "flux_fallbacks": 0,
+    "grid": [
+      128,
+      32
+    ],
+    "ideal_gas_estimate": true,
+    "initial_residuals": [
+      0.00047927306315918546,
+      0.001264013210511681,
+      0.0011752942374125643,
+      0.001677608346213472
+    ],
+    "inlet_mass_flow": 0.09668098257719346,
+    "iterations": 82480,
+    "mass_conservation_error": 3.5184911127122975e-05,
+    "mass_flow": 0.09668438529909741,
+    "mass_flow_spread": 0.000446829384688745,
+    "observable_stability": {
+      "estimated_thrust": {
+        "maximum": 171.00769675397612,
+        "mean": 171.00769518949457,
+        "minimum": 171.00769364492032,
+        "relative_drift": -3.000097130214505e-10,
+        "relative_range": 1.8180794690949974e-08,
+        "relative_stddev": 6.184841545376961e-09
+      },
+      "exit_mach": {
+        "maximum": 2.217706083833217,
+        "mean": 2.2177060808934432,
+        "minimum": 2.2177060780511137,
+        "relative_drift": -3.668681925727647e-11,
+        "relative_range": 2.607245067533277e-09,
+        "relative_stddev": 8.909807546198253e-10
+      },
+      "exit_pressure": {
+        "maximum": 162795.24015426214,
+        "mean": 162795.23913919195,
+        "minimum": 162795.2381349401,
+        "relative_drift": -2.2342820679750384e-10,
+        "relative_range": 1.2404060778442614e-08,
+        "relative_stddev": 4.209983612048466e-09
+      },
+      "mass_conservation_error": {
+        "maximum": 3.518656592165993e-05,
+        "mean": 3.517967436905287e-05,
+        "minimum": 3.5172725993958474e-05,
+        "relative_drift": -2.0228864833426082e-06,
+        "relative_range": 0.0003934069302707743,
+        "relative_stddev": 0.0001343223616563822
+      },
+      "mass_flow": {
+        "maximum": 0.09668438550285248,
+        "mean": 0.09668438485776151,
+        "minimum": 0.0966843842216902,
+        "relative_drift": -2.1445381820563169e-10,
+        "relative_range": 1.3250974036571295e-08,
+        "relative_stddev": 4.5101514649952805e-09
+      },
+      "mass_flow_spread": {
+        "maximum": 0.00044685949408286286,
+        "mean": 0.000446841337428653,
+        "minimum": 0.00044682296825486077,
+        "relative_drift": 1.6755407657340439e-06,
+        "relative_range": 8.174227615619411e-05,
+        "relative_stddev": 2.7622924787826017e-05
+      },
+      "specific_impulse": {
+        "maximum": 180.35934139427073,
+        "mean": 180.359340947616,
+        "minimum": 180.3593405051315,
+        "relative_drift": -8.555589864069264e-11,
+        "relative_range": 4.9298207174402116e-09,
+        "relative_stddev": 1.6748052521538903e-09
+      },
+      "throat_mach": {
+        "maximum": 1.0067710756289887,
+        "mean": 1.0067710712363385,
+        "minimum": 1.0067710668553551,
+        "relative_drift": 5.503123624502972e-10,
+        "relative_range": 8.714626242329355e-09,
+        "relative_stddev": 2.8868420505323997e-09
+      }
+    },
+    "precision": "double",
+    "reconstruction_fallbacks": 0,
+    "residual_reduction_factors": [
+      1857.9375755455833,
+      40158.50646243062,
+      5976.979571917728,
+      1959.8596888046034
+    ],
+    "residuals_nondimensional": [
+      2.5795972344143314e-07,
+      3.147560310028462e-08,
+      1.9663681685220624e-07,
+      8.559839032337628e-07
+    ],
+    "simulated_time": 0.004046756835553308,
+    "specific_impulse": 180.35934124964712,
+    "termination": "steady_converged",
+    "termination_reason": "steady_converged",
+    "throat_mach": 1.006771074946724,
+    "performance": {
+      "cells": 4096,
+      "device_bytes": 0,
+      "mean_iteration_ms": 1.4996881485572429,
+      "reference_scales": {
+        "density": 2.4888003982080638,
+        "length": 0.0045,
+        "pressure": 2000000.0,
+        "temperature": 2800.0,
+        "time": 5.019870917848052e-06,
+        "velocity": 896.4373932405988
+      },
+      "solver_ms": 123694.27849300139,
+      "wall_ms": 124470.186168
+    },
+    "provenance": {
+      "request": {
+        "config": {
+          "problem": "rocket_nozzle",
+          "gas": {
+            "gamma": 1.4,
+            "gas_constant": 287.0,
+            "prandtl": 0.72,
+            "viscosity": 4e-05
+          },
+          "geometry": {
+            "chamber_radius": 0.006,
+            "chamber_length": 0.03,
+            "throat_radius": 0.0045,
+            "contraction_length": 0.06,
+            "exit_radius": 0.00675,
+            "expansion_length": 0.12
+          },
+          "mesh": {
+            "nx": 128,
+            "nr": 32
+          },
+          "boundary_conditions": {
+            "P0": 2000000,
+            "T0": 2800,
+            "back_pressure": 101325,
+            "wall": "no_slip",
+            "wall_temperature": 0
+          },
+          "numerics": {
+            "cfl": 0.4,
+            "limiter": "mc"
+          },
+          "runtime": {
+            "backend": "cpu",
+            "precision": "double",
+            "max_iterations": 150000,
+            "residual_tolerance": 1e-06
+          },
+          "output": {
+            "interval": 20
+          },
+          "convergence": {
+            "minimum_iterations": 5000,
+            "sampling_interval": 20,
+            "window_iterations": 2000,
+            "relative_residual_target": 0,
+            "observable_tolerance": 0.0005,
+            "mass_mismatch_tolerance": 0.001,
+            "station_spread_tolerance": 0.002
+          }
+        },
+        "cli_sha256": "68ea89fdc2a3e5b6cf9b61c47b3c6e44bc4e467c9d629ced5843cde6d0aca80c"
+      },
+      "source_commit": "a3c7bd80abd9eff45c3bdefcd6af7b1629d7a864",
+      "exit_code": 0,
+      "wall_seconds": 124.49675583839417,
+      "sha256": {
+        "config.json": "38acc167f98a8f01b80e4944275e0bbe865c5101973a03d75830897256e5432b",
+        "summary.json": "96dcd13c6d08b66bc76f9180c923a7bb72590d44f5532d182279500fbd338482",
+        "performance.json": "70be5853d1d72613c303d961a2050916bb7ce66c5c899129792823bfbe35559f",
+        "engineering.csv": "90a3067b6c20abd317bf61ff71be038c56ba7fbf1fc6eb3989dc9ebe0420037e",
+        "convergence.csv": "d36766047e92b36e64de4438a7e59bce6ad09d8cd813aa7ce9f913762ffeed49",
+        "final_state.vts": "8e032c011d14ae8cb20768b3bf52299fd3ca1c5d7b96d421145c144b996242db"
+      }
+    }
+  },
+  "medium_unaccepted": {
+    "backend": "cuda",
+    "chamber_to_exit_pressure_ratio": 11.354239956704491,
+    "converged": false,
+    "convergence_window": {
+      "absolute_residual_target": 1e-06,
+      "end_iteration": 250000,
+      "mass_mismatch_target": 0.001,
+      "minimum_iterations": 5000,
+      "observable_relative_range_target": 0.0005,
+      "relative_residual_target": 0.0,
+      "required_iterations": 2000,
+      "samples": 101,
+      "sampling_interval": 20,
+      "start_iteration": 248000,
+      "station_spread_target": 0.002
+    },
+    "estimated_thrust": 170.34190998491167,
+    "exit_area": 0.0001431388152791849,
+    "exit_axial_velocity": 1680.1748812878884,
+    "exit_mach": 2.207957751120138,
+    "exit_pressure": 162112.08193751262,
+    "exit_temperature": 1418.1895581047281,
+    "final_residuals": [
+      3.352551275265771e-05,
+      1.550325727352921e-05,
+      2.7168594870253237e-05,
+      0.00011350051710520204
+    ],
+    "flux_fallbacks": 0,
+    "grid": [
+      256,
+      64
+    ],
+    "ideal_gas_estimate": true,
+    "initial_residuals": [
+      0.00041789848720494885,
+      0.003888412239700506,
+      0.0012475144543604285,
+      0.0014640931133449494
+    ],
+    "inlet_mass_flow": 0.09631830733702534,
+    "iterations": 250000,
+    "mass_conservation_error": 0.0011781496953495612,
+    "mass_flow": 0.09620481825570226,
+    "mass_flow_spread": 0.0013276725589581144,
+    "observable_stability": {
+      "estimated_thrust": {
+        "maximum": 170.3419099964208,
+        "mean": 170.34186193810743,
+        "minimum": 170.34181602448754,
+        "relative_drift": 5.547088588203837e-08,
+        "relative_range": 5.516667024686565e-07,
+        "relative_stddev": 1.9470965215647418e-07
+      },
+      "exit_mach": {
+        "maximum": 2.207957751120138,
+        "mean": 2.20795765265446,
+        "minimum": 2.2079575536276352,
+        "relative_drift": 7.330864636804836e-09,
+        "relative_range": 8.944578378052294e-08,
+        "relative_stddev": 2.7325960436284906e-08
+      },
+      "exit_pressure": {
+        "maximum": 162112.0821038854,
+        "mean": 162112.04992072433,
+        "minimum": 162112.01944741973,
+        "relative_drift": 3.929173192065712e-08,
+        "relative_range": 3.8650097686465226e-07,
+        "relative_stddev": 1.3653438228698035e-07
+      },
+      "mass_conservation_error": {
+        "maximum": 0.0011783301529683305,
+        "mean": 0.0011782117112892564,
+        "minimum": 0.001178095902363499,
+        "relative_drift": -3.649136028493481e-05,
+        "relative_range": 0.00019881877135244312,
+        "relative_stddev": 6.825094688376907e-05
+      },
+      "mass_flow": {
+        "maximum": 0.09620481830450317,
+        "mean": 0.09620479838049968,
+        "minimum": 0.0962047793798176,
+        "relative_drift": 4.067290637441681e-08,
+        "relative_range": 4.0460232989661025e-07,
+        "relative_stddev": 1.4249265199141195e-07
+      },
+      "mass_flow_spread": {
+        "maximum": 0.0013285886434710266,
+        "mean": 0.001328136943202403,
+        "minimum": 0.001327663370165841,
+        "relative_drift": -7.330471164538714e-05,
+        "relative_range": 0.0006966701061371478,
+        "relative_stddev": 0.0002449801495764164
+      },
+      "specific_impulse": {
+        "maximum": 180.5527108835276,
+        "mean": 180.55269725750298,
+        "minimum": 180.55268417668185,
+        "relative_drift": 1.4797977961994266e-08,
+        "relative_range": 1.479171795843894e-07,
+        "relative_stddev": 5.222468801520109e-08
+      },
+      "throat_mach": {
+        "maximum": 0.9791363264329593,
+        "mean": 0.9791362273464536,
+        "minimum": 0.9791361255661519,
+        "relative_drift": 2.5513852815436185e-08,
+        "relative_range": 2.0514694666517476e-07,
+        "relative_stddev": 7.224217168568665e-08
+      }
+    },
+    "precision": "double",
+    "reconstruction_fallbacks": 0,
+    "residual_reduction_factors": [
+      12.465088611413416,
+      250.81259835245808,
+      45.917518381722644,
+      12.899440026232673
+    ],
+    "residuals_nondimensional": [
+      3.352551275265771e-05,
+      1.550325727352921e-05,
+      2.7168594870253237e-05,
+      0.00011350051710520204
+    ],
+    "simulated_time": 0.006078589071888657,
+    "specific_impulse": 180.5527108835276,
+    "termination": "iteration_limit",
+    "termination_reason": "iteration_limit",
+    "throat_mach": 0.9791361786878443,
+    "performance": {
+      "cells": 16384,
+      "device_bytes": 9109563,
+      "mean_iteration_ms": 0.9529754181134701,
+      "reference_scales": {
+        "density": 2.4888003982080638,
+        "length": 0.0045,
+        "pressure": 2000000.0,
+        "temperature": 2800.0,
+        "time": 5.019870917848052e-06,
+        "velocity": 896.4373932405988
+      },
+      "solver_ms": 238243.85452836752,
+      "wall_ms": 256789.705155
+    },
+    "provenance": {
+      "request": {
+        "config": {
+          "problem": "rocket_nozzle",
+          "gas": {
+            "gamma": 1.4,
+            "gas_constant": 287.0,
+            "prandtl": 0.72,
+            "viscosity": 4e-05
+          },
+          "geometry": {
+            "chamber_radius": 0.006,
+            "chamber_length": 0.03,
+            "throat_radius": 0.0045,
+            "contraction_length": 0.06,
+            "exit_radius": 0.00675,
+            "expansion_length": 0.12
+          },
+          "mesh": {
+            "nx": 256,
+            "nr": 64
+          },
+          "boundary_conditions": {
+            "P0": 2000000,
+            "T0": 2800,
+            "back_pressure": 101325,
+            "wall": "no_slip",
+            "wall_temperature": 0
+          },
+          "numerics": {
+            "cfl": 0.4,
+            "limiter": "mc"
+          },
+          "runtime": {
+            "backend": "cuda",
+            "precision": "double",
+            "max_iterations": 250000,
+            "residual_tolerance": 1e-06
+          },
+          "output": {
+            "interval": 20
+          },
+          "convergence": {
+            "minimum_iterations": 5000,
+            "sampling_interval": 20,
+            "window_iterations": 2000,
+            "relative_residual_target": 0,
+            "observable_tolerance": 0.0005,
+            "mass_mismatch_tolerance": 0.001,
+            "station_spread_tolerance": 0.002
+          }
+        },
+        "cli_sha256": "c2695d24b5ffb33aab6882ed5763a7e6a49ba724b17aa8158741f4bab0cd44ea"
+      },
+      "source_commit": "a3c7bd80abd9eff45c3bdefcd6af7b1629d7a864",
+      "exit_code": 0,
+      "wall_seconds": 257.2783839702606,
+      "sha256": {
+        "config.json": "bc554a37842be9251afb6d73a93f2faa3435ddc2896c9d866f9c9978e5dad99b",
+        "summary.json": "ad7fac04c8ba17cff5cb06126650e8d3f5147311f7210fccd6a4980178ee40de",
+        "performance.json": "feb0a3a41f11809d4461cfa2eafd70f879951cd9aae495a117cdc7250062a0a8",
+        "engineering.csv": "e51aab15a189e0a84f5e3cc94df73d1d6c3ea30816f99d4130be35407766d518",
+        "convergence.csv": "d5af3e58e3b3dc4486755fb0aa21698ca789ce760c9289b260eaed667d2270cc",
+        "final_state.vts": "7c5326b05134fe6bd875d6d4478afd5d22cceca870204ba4af64cbb5cea3457e"
+      }
+    }
+  },
+  "cpu_comparison": {
+    "cpu_iterations": 82480,
+    "cuda_iterations": 82480,
+    "nondimensional_conservative_norms": {
+      "rho": {
+        "L1": 1.3264264903459222e-15,
+        "L2": 1.810931175542343e-15,
+        "Linf": 7.216449660063518e-15
+      },
+      "rho_u": {
+        "L1": 1.2809780905280455e-15,
+        "L2": 1.5985405648947786e-15,
+        "Linf": 5.995204332975845e-15
+      },
+      "rho_v": {
+        "L1": 2.8184298353691715e-16,
+        "L2": 3.8490835356688465e-16,
+        "Linf": 1.661431409116787e-15
+      },
+      "rho_E": {
+        "L1": 1.6461170534304292e-15,
+        "L2": 2.1596864882060128e-15,
+        "Linf": 1.199040866595169e-14
+      }
+    },
+    "engineering_relative_differences": {
+      "mass_flow": 8.612220741673799e-16,
+      "estimated_thrust": 1.3296107743725943e-15,
+      "specific_impulse": 4.727513845439868e-16,
+      "throat_mach": 2.2055123597664082e-16,
+      "exit_mach": 6.007412974134659e-16,
+      "exit_pressure": 3.575513693006222e-16,
+      "exit_axial_velocity": 2.710514832998895e-16,
+      "exit_temperature": 9.663409815737336e-16,
+      "mass_conservation_error": 0.0,
+      "mass_flow_spread": 2.2479701136858525e-12
+    },
+    "maximum_field_difference": 1.199040866595169e-14,
+    "same_iteration_parity_bound": 1e-10,
+    "parity_pass": true
+  },
+  "diagnostics": {
+    "cfl04": {
+      "energy_rhs_initial": 0.00011265701502012355,
+      "energy_rhs_final": 0.00011194794739623506,
+      "steps": 2000,
+      "normalized_duration": 9.686905851631018,
+      "primitive_change_norms": {
+        "rho": {
+          "L1": 2.24955118090358e-06,
+          "Linf": 4.717226992945189e-05
+        },
+        "u": {
+          "L1": 1.0829725720379933e-06,
+          "Linf": 2.0712612059992086e-05
+        },
+        "v": {
+          "L1": 2.044898700069604e-06,
+          "Linf": 3.1264096571818065e-05
+        },
+        "p": {
+          "L1": 3.0523081019754805e-06,
+          "Linf": 6.44611378279869e-05
+        }
+      }
+    },
+    "cfl01": {
+      "energy_rhs_initial": 0.00011265701502012355,
+      "energy_rhs_final": 0.00011142103956140523,
+      "steps": 8000,
+      "normalized_duration": 9.68690582437529,
+      "primitive_change_norms": {
+        "rho": {
+          "L1": 2.2727319584703205e-06,
+          "Linf": 4.72332456006308e-05
+        },
+        "u": {
+          "L1": 1.0868851723567192e-06,
+          "Linf": 2.073499797994316e-05
+        },
+        "v": {
+          "L1": 2.0795062373656855e-06,
+          "Linf": 2.995949287404613e-05
+        },
+        "p": {
+          "L1": 3.0800854587675465e-06,
+          "Linf": 6.454446277004422e-05
+        }
+      }
+    },
+    "extended": {
+      "energy_rhs_initial": 0.00011265701502012355,
+      "energy_rhs_final": 0.00010048267668917489,
+      "steps": 50000,
+      "normalized_duration": 242.17264662782276,
+      "primitive_change_norms": {
+        "rho": {
+          "L1": 1.1125920976307234e-06,
+          "Linf": 2.222166073961862e-05
+        },
+        "u": {
+          "L1": 5.546633934160775e-07,
+          "Linf": 1.1552430923544854e-05
+        },
+        "v": {
+          "L1": 1.0625016923106644e-06,
+          "Linf": 2.5141639250074108e-05
+        },
+        "p": {
+          "L1": 1.4998743448899901e-06,
+          "Linf": 3.0365848594726685e-05
+        }
+      }
+    }
+  },
+  "grid_analysis": {
+    "excluded_runs": [
+      {
+        "grid": [
+          256,
+          64
+        ],
+        "directory": "256x64/attempt-001",
+        "converged": false,
+        "termination_reason": "iteration_limit"
+      }
+    ],
+    "grids": [
+      {
+        "grid": [
+          128,
+          32
+        ],
+        "iterations": 82480,
+        "simulated_time": 0.004046756835553308,
+        "mass_flow": 0.09668438529909733,
+        "estimated_thrust": 171.00769625646518,
+        "specific_impulse": 180.35934124964703,
+        "throat_mach": 1.0067710749467242,
+        "exit_mach": 2.2177060829451216,
+        "exit_pressure": 162795.2398205684,
+        "exit_axial_velocity": 1677.7157805970564,
+        "exit_temperature": 1411.760526225078,
+        "mass_conservation_error": 3.5184911127122975e-05,
+        "mass_flow_spread": 0.00044682938468974944
+      }
+    ],
+    "comparisons": [],
+    "richardson": {},
+    "global_grid_goals_pass": false,
+    "valid_gci_goals_pass": false,
+    "gci_assumption": "Conditional on a single leading power of h. Three samples alone do not prove the asymptotic regime.",
+    "profile_definition": "First radial cell row approximates centreline; last radial row approximates wall pressure. No extrapolation to boundaries; common axial overlap includes the throat."
+  }
+}

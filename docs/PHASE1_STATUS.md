@@ -19,7 +19,7 @@ See [environment.md](environment.md). Project-local CUDA 12.8.93 installed; SM12
 
 ## Current blocker
 
-None. The user configured origin as git@github.com:reverez/AstraFlow.git; SSH fetch succeeds. Remote README commits were merged without rewriting history, retaining the user's structure and authorship text.
+Phase 1 has no blocker. V1.1 refined-grid steady closure remains unresolved; see the V1.1 section below. The user configured origin as git@github.com:reverez/AstraFlow.git; SSH fetch succeeds. Remote README commits were merged without rewriting history, retaining the user's structure and authorship text.
 
 ## Latest validation
 
@@ -42,9 +42,9 @@ Only specified Phase 2 features: plume, chemistry, turbulence, advanced thermody
 - [x] C0: annotated v1.0.0 preserves ecd0337; development on v1.1-scientific-closure; main unchanged; baseline Release suite passes.
 - [x] C1: convergence monitor, full engineering window, explicit termination/output and dedicated FP64 configuration; CPU 6/6, CUDA 8/8, legacy 3,000-step iteration-limit check and analysis unit tests pass.
 - [x] C2: 128x32 CUDA FP64 steady closure at 82,480 iterations, 64.7 s wall; all residual/window/conservation gates pass, zero fallbacks.
-- [ ] C3: independently converged rocket grid study and CPU reference cross-check.
-- [ ] C4: Richardson/GCI analysis where valid.
-- [ ] C5: scientific figures and closure report.
-- [ ] C6: final acceptance pass and branch publication (no merge).
+- [ ] C3: blocked scientifically. CPU FP64 cross-check passes at 82,480 iterations (max field difference 1.20e-14). 256x64 reaches 250,000 steps without residual/mass-estimate closure; finer grids were not started.
+- [ ] C4: analysis mathematics tests pass; numerical Richardson/GCI is not valid with only one accepted grid.
+- [ ] C5: diagnostic closure report and four eligible baseline figures plus rejected-grid residual figure complete; grid-convergence figure withheld because the prerequisite failed.
+- [ ] C6: final software pass is green (CPU 7/7, CUDA 9/9, analysis tests and output integrity); scientific acceptance remains false because C3 did not pass. Review branch published without merging main.
 
-Next: CPU FP64 reference cross-check and systematic refined-grid closure. Details and exact criteria are in [rocket_scientific_closure.md](verification/rocket_scientific_closure.md).
+Scientific acceptance is unresolved. CFL sensitivity and an additional 50,000-step diagnostic continuation did not resolve the medium-grid residual. Existing cell-based mass estimate differs from the numerical boundary-flux balance; neither criterion was changed. Details and exact criteria are in [rocket_scientific_closure.md](verification/rocket_scientific_closure.md).

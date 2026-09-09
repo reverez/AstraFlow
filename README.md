@@ -22,6 +22,13 @@ Final checks passed: Release CPU **6/6**, Release CUDA **8/8**, CPU AddressSanit
 
 See [`docs/PHASE1_STATUS.md`](docs/PHASE1_STATUS.md).
 
+**V1.1 scientific closure — partial result, acceptance unresolved:** the 128×32 rocket case reaches `steady_converged` in CUDA FP64 at **82,480 iterations**, with all four final residuals <=8.56e-7 and maximum engineering-window relative range 1.82e-8. An independent CPU FP64 run converges at the same iteration, with maximum conservative-field difference 1.20e-14.
+
+The 256×64 case remains iteration-limited at 250,000 steps (maximum residual 1.14e-4). Refinement stopped there; **rocket grid independence and Richardson/GCI uncertainty are not established**. No convergence tolerance or solver mathematics was changed. See the [scientific closure report](docs/verification/rocket_scientific_closure.md) for criteria, diagnostics, actual-data figures and the unresolved refined-grid result.
+
+![Steady 128×32 rocket residual convergence](docs/figures/rocket-residual-convergence.png)
+
+
 ---
 
 ## Preview
