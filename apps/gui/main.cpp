@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
             else if (smoke)
                 selected = int(Field::Mach);
             if (snapshot && (snapshot != previous || selected != previous_field)) {
-                values = scalar_field(*snapshot->mesh, snapshot->conservative, active.settings.gas,
+                values = scalar_field(*snapshot->mesh, snapshot->conservative, snapshot->gas,
                                       Field(selected));
                 rendered[selected] = true;
                 if (snapshot != previous) {
@@ -322,7 +322,7 @@ int main(int argc, char **argv) {
                 input("T0 [K]", draft.settings.t0);
                 input("Back pressure [Pa]", draft.settings.back_pressure);
             }
-            if (ImGui::CollapsingHeader("Nozzle geometry", ImGuiTreeNodeFlags_DefaultOpen)) {
+            if (ImGui::CollapsingHeader("Nozzle geometry [m]", ImGuiTreeNodeFlags_DefaultOpen)) {
                 input("Chamber radius", draft.geometry.chamber_radius);
                 input("Chamber length", draft.geometry.chamber_length);
                 input("Throat radius", draft.geometry.throat_radius);
@@ -378,8 +378,9 @@ int main(int argc, char **argv) {
             if (ImPlot::BeginPlot("##residual", {-1, ImGui::GetContentRegionAvail().y - 115})) {
                 ImPlot::SetupAxes("Iteration", "Residual");
                 ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
-                ImPlot::SetupAxesLimits(0, hx.empty() ? 100 : hx.back() + 1, 1e-7, 1,
-                                        ImGuiCond_Once);
+                ImPlot::SetupAxisLimits(ImAxis_X1, 0, hx.empty() ? 100 : hx.back() + 1,
+                                        ImGuiCond_Always);
+                ImPlot::SetupAxisLimits(ImAxis_Y1, 1e-7, 1, ImGuiCond_Once);
                 const char *labels[] = {"Mass", "Axial momentum", "Radial momentum", "Energy"};
                 for (int k = 0; k < 4; ++k)
                     if (!hx.empty())
@@ -418,7 +419,7 @@ int main(int argc, char **argv) {
             ImGui::TextWrapped("%s", gpu.substr(0, gpu.find('\n')).c_str());
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("%s", gpu.c_str());
-            ImGui::TextDisabled("CUDA native target: sm_120");
+            ImGui::TextDisabled("%s", gpu.substr(gpu.find_last_of('\n') + 1).c_str());
             if (snapshot) {
                 auto &s = snapshot->stats;
                 ImGui::Text("Grid: %d x %d   |   %.2f MiB device", snapshot->mesh->nx,

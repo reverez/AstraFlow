@@ -31,11 +31,14 @@ TEST_CASE("Worker run pause step reset and invalid regeneration", "[unit]") {
     REQUIRE_THROWS(controller.reset(invalid));
     REQUIRE(controller.state() == RunState::Paused);
     c.geometry.nx = 20;
+    c.settings.gas.gamma = 1.35;
     controller.reset(c);
     REQUIRE(controller.wait_for(RunState::Ready, timeout));
     REQUIRE(controller.snapshot()->mesh->nx == 20);
     REQUIRE(controller.snapshot()->stats.iterations == 0);
     REQUIRE(old->mesh->nx == 16);
+    REQUIRE(old->gas.gamma == 1.4);
+    REQUIRE(controller.snapshot()->gas.gamma == 1.35);
     auto snap = controller.snapshot();
     for (int f = 0; f < 9; ++f) {
         auto values = scalar_field(*snap->mesh, snap->conservative, c.settings.gas, Field(f));

@@ -16,3 +16,5 @@ Preflight performed once on 2026-09-09 at `/home/arnav/dev/projects/portfolio`; 
 Sources: [NVIDIA CUDA 12.8.1 manifest](https://developer.download.nvidia.com/compute/cuda/redist/redistrib_12.8.1.json), [NVIDIA Linux installation guide](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html).
 
 Milestone 0 runtime probe: NVIDIA GeForce RTX 5070 Laptop GPU; compute capability 12.0; global memory 8,518,041,600 bytes; CUDA runtime 12080; executed kernel architecture sm_120. NVCC 12.8.93. CMake 3.28.3 accepts architecture 120 explicitly on the target. Local gh 2.65.0 reports no authenticated hosts.
+
+Relocation update: the user moved the repository to `/home/arnav/dev/projects/portfolio/AstraFlow`. Continued development there on 2026-09-09. The old absolute-path CMake trees are preserved as `build-before-move` and `build-cpu-before-move`; fresh build trees reuse their downloaded dependency sources. No project data or user commits were removed.

@@ -54,3 +54,9 @@ The 4x24 grid starts from u=0.8y, T=1 and evolves to t=15 (9,924 steps). L1 velo
 Strict JSON parsing and roundtrip, dimensional scaling/restoration and uniform analytical exit-area/mass-flow/thrust/Isp integration pass unit tests. Actual 128x32 viscous rocket runs completed 300 steps on CPU FP64 and CUDA FP32. The CUDA run produced mdot=0.0968174695 kg/s, exit Mach=2.30519878, exit p=154822.8336 Pa and idealised thrust=172.6706309 N. Its mass-flow inlet/exit mismatch was 0.00312177. These are transient iteration-limit outputs, not steady convergence or experimental validation.
 
 `scripts/check_run.py` independently parsed both runs' VTK XML and JSON/CSV, checked grid/array lengths, finite positive fields, last iteration consistency, and the thrust/Isp identity. All checks passed. No Python packages were installed.
+
+## M7 GUI verification
+
+Actual WSLg startup and OpenGL rendering passed. `astraflow_gui --smoke-test` drives the same control handlers used by the buttons, verifies exactly one requested step and reset-to-zero behavior, regenerates the mesh, cycles all nine fields, and exercises residual/engineering updates. This is scripted handler testing, not a claim of manual mouse testing. Independent worker tests cover pause boundaries, immutable old snapshots, gas-property retention and rejected invalid geometry.
+
+The captured framebuffer exposed a convergence-axis bug (x stayed at 0–100 despite later iterations); it was repaired and the GUI smoke/capture rerun. The verified screenshot at `docs/screenshots/astraflow.png` shows the complete current history and engineering dashboard. No display limitation was encountered. Both relocated Release build suites also passed.

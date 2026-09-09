@@ -12,6 +12,7 @@ struct HistoryRow {
     std::array<double, 4> residual;
 };
 struct Snapshot {
+    Gas gas;
     std::shared_ptr<const Mesh> mesh;
     std::vector<double> conservative;
     StepStats stats;

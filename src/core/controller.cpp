@@ -58,6 +58,7 @@ void Controller::reset(Config c) {
     running_ = false;
     single_ = false;
     state_ = RunState::Idle;
+    snapshot_.reset();
     error_.clear();
     cv_.notify_all();
 }
@@ -85,6 +86,7 @@ bool Controller::wait_iterations(int n, std::chrono::milliseconds timeout) {
 void Controller::publish(const Simulation &sim, std::shared_ptr<const Mesh> mesh,
                          const std::vector<HistoryRow> &history, RunState state) {
     auto snapshot = std::make_shared<Snapshot>();
+    snapshot->gas = sim.config().settings.gas;
     snapshot->mesh = std::move(mesh);
     snapshot->conservative = sim.state();
     snapshot->stats = sim.stats();

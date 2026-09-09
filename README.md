@@ -2,7 +2,7 @@
 
 AstraFlow is being implemented as a GPU-accelerated axisymmetric compressible CFD simulator for rocket nozzle flows, using C++20 and CUDA, with a CPU reference backend.
 
-**Development status:** Milestones 0–6 complete: verified CPU/CUDA Euler and axisymmetric viscous finite volumes, CLI, engineering analysis and reproducible output. GUI/performance/final review remain in progress. See [Phase 1 status](docs/PHASE1_STATUS.md).
+**Development status:** Milestones 0–7 complete: verified CPU/CUDA Euler and axisymmetric viscous finite volumes, CLI, engineering analysis and reproducible output. The interactive GUI is verified; performance/final review remain in progress. See [Phase 1 status](docs/PHASE1_STATUS.md).
 
 ## Build
 
@@ -41,3 +41,17 @@ python3 scripts/check_run.py runs/<run-id>
 ```
 
 Examples cover Sod, an inviscid isentropic nozzle, compressible Couette channel and a viscous ideal-gas rocket nozzle. `--output`, `--max-iterations` and `--precision float|double` override configuration values. Generated output directories are ignored and existing nonempty directories are protected.
+
+## Interactive GUI
+
+```sh
+# Only if GUI development headers are missing on Ubuntu 24.04:
+bash scripts/bootstrap_gui.sh
+cmake -S . -B build -DASTRAFLOW_BUILD_GUI=ON
+cmake --build build
+./build/astraflow_gui --config examples/rocket_nozzle/config.json
+```
+
+![Actual AstraFlow GUI on WSLg](docs/screenshots/astraflow.png)
+
+Run/Pause/Step/Reset and Regenerate Mesh command the same solver used by the CLI. The field selector includes pressure, density, temperature, Mach, velocity components/magnitude, energy and vorticity. Geometry edits apply after pause/regeneration. Radial display magnification is labelled and does not alter exported geometry.
