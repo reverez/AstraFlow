@@ -70,14 +70,29 @@ RunOutput::RunOutput(const Simulation &sim) {
     csv_.exceptions(std::ios::failbit | std::ios::badbit);
     csv_ << std::setprecision(17)
          << "iteration,time,dt,mass_residual,axial_momentum_residual,radial_momentum_residual,"
-            "energy_residual,iteration_ms\n";
+            "energy_residual,iteration_ms,pseudo_dt_min_normalized,pseudo_dt_max_normalized,wall_"
+            "elapsed_ms\n";
     engineering_csv_.open(directory_ / "engineering.csv");
     engineering_csv_.exceptions(std::ios::failbit | std::ios::badbit);
     engineering_csv_ << std::setprecision(17) << "iteration,time";
     for (auto field : stability_fields)
         engineering_csv_ << ',' << field;
     engineering_csv_
-        << ",mass_conservation_error,mass_flow_spread,flux_fallbacks,reconstruction_fallbacks\n";
+        << ",mass_conservation_error,mass_flow_spread,flux_fallbacks,reconstruction_fallbacks,"
+           "interior_inlet_exit_mass_estimate_mismatch,numerical_boundary_mass_flux_mismatch\n";
+    balance_history_.open(directory_ / "balance.jsonl");
+    balance_history_.exceptions(std::ios::failbit | std::ios::badbit);
+    json_file(directory_ / "initial_balance.json", sim.balance());
+    json_file(directory_ / "metadata.json",
+              {{"time_integration", sim.time_integration()},
+               {"physical_time_columns", {"time", "dt"}},
+               {"pseudo_time_coordinate", "none: local timesteps have no common elapsed time"},
+               {"pseudo_timestep_units", "nondimensional"},
+               {"residual_sampling",
+                sim.config().steady.enabled ? "completed_pseudo_iterate" : "second_ssprk2_stage"},
+               {"convergence_mass_gate",
+                "mass_conservation_error (alias: interior_inlet_exit_mass_estimate_mismatch)"}});
+    started_ = std::chrono::steady_clock::now();
 }
 void RunOutput::record(const Simulation &sim) {
     auto s = sim.stats();
@@ -90,7 +105,17 @@ void RunOutput::record(const Simulation &sim) {
             engineering_csv_ << ',' << e.at(field);
         engineering_csv_ << ',' << e.at("mass_conservation_error") << ','
                          << e.at("mass_flow_spread") << ',' << s.flux_fallbacks << ','
-                         << s.reconstruction_fallbacks << '\n';
+                         << s.reconstruction_fallbacks << ','
+                         << e.at("interior_inlet_exit_mass_estimate_mismatch") << ','
+                         << e.at("numerical_boundary_mass_flux_mismatch") << '\n';
+        auto b = sim.sampled_balance();
+        b["iteration"] = s.iterations;
+        b["physical_simulated_time"] = s.time;
+        b["time_integration"] = sim.time_integration();
+        b["interior_inlet_exit_mass_estimate_mismatch"] =
+            e.at("interior_inlet_exit_mass_estimate_mismatch");
+        balance_history_ << b.dump() << '\n';
+        balance_history_.flush();
         engineering_csv_.flush();
     }
     if (s.iterations == last_iteration_)
@@ -99,7 +124,10 @@ void RunOutput::record(const Simulation &sim) {
     csv_ << s.iterations << ',' << s.time << ',' << s.dt;
     for (double r : s.residual)
         csv_ << ',' << r;
-    csv_ << ',' << s.iteration_ms << '\n';
+    csv_ << ',' << s.iteration_ms << ',' << s.pseudo_dt_min << ',' << s.pseudo_dt_max << ','
+         << std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started_)
+                .count()
+         << '\n';
     csv_.flush();
 }
 nlohmann::json RunOutput::finish(const Simulation &sim, double wall_ms) {
@@ -112,6 +140,10 @@ nlohmann::json RunOutput::finish(const Simulation &sim, double wall_ms) {
         write_vtk(directory_ / "final_state.vts", sim.mesh(), state, sim.config().settings.gas);
         result = engineering(sim.mesh(), state, sim.config().settings.gas,
                              sim.config().settings.back_pressure);
+        auto b = sim.balance();
+        result["numerical_boundary_mass_flux_mismatch"] =
+            b.at("numerical_boundary_mass_flux_mismatch");
+        json_file(directory_ / "final_balance.json", b);
     }
     result.update(sim.convergence_report());
     auto s = sim.stats();
@@ -120,6 +152,12 @@ nlohmann::json RunOutput::finish(const Simulation &sim, double wall_ms) {
     result["grid"] = {sim.mesh().nx, sim.mesh().nr};
     result["iterations"] = s.iterations;
     result["simulated_time"] = s.time;
+    result["physical_simulated_time"] = s.time;
+    result["time_integration"] = sim.time_integration();
+    result["pseudo_iterations"] = sim.config().steady.enabled ? s.iterations : 0;
+    result["pseudo_dt_min_normalized"] = s.pseudo_dt_min;
+    result["pseudo_dt_max_normalized"] = s.pseudo_dt_max;
+    result["convergence_mass_gate"] = "interior_inlet_exit_mass_estimate_mismatch";
     result["termination"] = sim.termination();
     result["residuals_nondimensional"] = s.residual;
     result["flux_fallbacks"] = s.flux_fallbacks;
@@ -127,7 +165,8 @@ nlohmann::json RunOutput::finish(const Simulation &sim, double wall_ms) {
     json_file(directory_ / "summary.json", result);
     const auto &ref = sim.scales();
     json_file(directory_ / "performance.json",
-              {{"wall_ms", wall_ms},
+              {{"time_integration", sim.time_integration()},
+               {"wall_ms", wall_ms},
                {"solver_ms", s.total_ms},
                {"mean_iteration_ms", s.iterations ? s.total_ms / s.iterations : 0},
                {"device_bytes", s.device_bytes},

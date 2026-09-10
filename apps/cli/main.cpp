@@ -124,17 +124,21 @@ int main(int argc, char **argv) {
                 .count();
         auto result = writer.finish(simulation, ms);
         std::cout << "Backend: " << config.backend << " (" << config.precision
-                  << ")\nGrid: " << simulation.mesh().nx << 'x' << simulation.mesh().nr
+                  << ")\nTime integration: " << simulation.time_integration()
+                  << "\nGrid: " << simulation.mesh().nx << 'x' << simulation.mesh().nr
                   << "\nIterations: " << result["iterations"]
-                  << "\nSimulated time: " << result["simulated_time"] << "\nWall time (ms): " << ms
-                  << "\nTermination: " << simulation.termination()
+                  << "\nPhysical simulated time: " << result["simulated_time"]
+                  << "\nWall time (ms): " << ms << "\nTermination: " << simulation.termination()
                   << "\nConverged: " << result["converged"]
                   << "\nMass flow: " << result["mass_flow"]
                   << "\nExit Mach: " << result["exit_mach"]
                   << "\nExit pressure: " << result["exit_pressure"]
                   << "\nEstimated thrust: " << result["estimated_thrust"]
                   << "\nSpecific impulse: " << result["specific_impulse"]
-                  << "\nMass conservation error: " << result["mass_conservation_error"]
+                  << "\nInterior inlet/exit mass estimate mismatch: "
+                  << result["interior_inlet_exit_mass_estimate_mismatch"]
+                  << "\nNumerical boundary mass flux mismatch: "
+                  << result["numerical_boundary_mass_flux_mismatch"]
                   << "\nFinal nondimensional residuals: " << result["residuals_nondimensional"]
                   << "\nOutput: " << writer.directory() << '\n';
         return 0;

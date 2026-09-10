@@ -31,6 +31,29 @@ int branch(double a, double b, Limiter limiter) {
 } // namespace
 int main(int argc, char **argv) {
     try {
+        if (argc == 5 && std::string(argv[1]) == "balance") {
+            auto c = Config::read(argv[2]);
+            c.backend = "cpu";
+            c.precision = "double";
+            c.steady.enabled = false;
+            std::ifstream in(argv[3]);
+            nlohmann::json data;
+            in >> data;
+            std::vector<State<double>> w;
+            for (const auto &row : data.at("physical_conservative")) {
+                if (!row.is_array() || row.size() != 4)
+                    throw std::invalid_argument("Invalid state row");
+                State<double> q;
+                for (int k = 0; k < 4; ++k)
+                    q[k] = row[k].get<double>();
+                w.push_back(primitive(q, c.settings.gas));
+            }
+            if (w.size() != std::size_t(c.geometry.nx * c.geometry.nr))
+                throw std::invalid_argument("State size mismatch");
+            Simulation snapshot(c, w);
+            write_json(argv[4], snapshot.balance());
+            return 0;
+        }
         if (argc == 6 && std::string(argv[1]) == "prolong") {
             auto c = Config::read(argv[2]), f = Config::read(argv[4]);
             auto cj = c.json(), fj = f.json();
@@ -66,8 +89,12 @@ int main(int argc, char **argv) {
             throw std::invalid_argument(
                 "Usage: residual_probe normalized-config primitives duration CFL output-directory "
                 "mc|van_leer|first_order sample-steps; or residual_probe prolong coarse-config "
-                "conservative-json fine-config output-json");
+                "conservative-json fine-config output-json; or residual_probe balance "
+                "physical-config "
+                "conservative-json output-json");
         auto c = Config::read(argv[1]);
+        if (c.steady.enabled)
+            throw std::invalid_argument("C2b probe requires physical-time configuration");
         auto mesh = nozzle_mesh(c.geometry);
         Settings s = c.settings;
         s.cfl = std::stod(argv[4]);

@@ -75,8 +75,35 @@ __global__ void fv_rk(View<T> base, View<T> from, View<T> out, View<T> res, T dt
     if (!physical(primitive(next, gas), gas))
         atomicCAS(bad, 0, i + 1);
 }
+template <class T>
+__global__ void pseudo_dt(View<T> w, T *local, const Cell *cells, const Face *faces, Settings s,
+                          T cap, int *bad) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= w.size)
+        return;
+    T dt = smaller(cap, fv_timestep(w.get(i), cells[i], faces, s));
+    local[i] = dt;
+    if (!(dt > 0) || !std::isfinite(dt))
+        atomicCAS(bad, 0, i + 1);
+}
+template <class T>
+__global__ void pseudo_rk(View<T> base, View<T> from, View<T> out, View<T> res, const T *local,
+                          T minimum, bool local_time, bool second, Gas gas, int *bad) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= out.size)
+        return;
+    T dt = local_time ? local[i] : minimum;
+    auto next = from.get(i) + dt * res.get(i);
+    if (second)
+        next = T(.5) * (base.get(i) + next);
+    out.set(i, next);
+    if (!physical(primitive(next, gas), gas))
+        atomicCAS(bad, 0, i + 1);
+}
 template <class T> class GpuSolver final : public Solver {
     Settings s_;
+    SteadySettings steady_;
+    std::unique_ptr<cuda::Buffer<T>> local_dt_, maximum_;
     int n_, nf_, blocks_;
     bool ready_ = false;
     StepStats stats_;
@@ -140,9 +167,58 @@ template <class T> class GpuSolver final : public Solver {
         mark(event + 5);
     }
 
+    void pseudo_step(double maximum_dt) {
+        start_.record();
+        rk_stage_ = 0;
+        convert(u_);
+        Settings timestep_settings = s_;
+        timestep_settings.cfl = steady_.cfl;
+        pseudo_dt<<<blocks_, block_size>>>(
+            view(w_), local_dt_->data(), cells_.data(), faces_.data(), timestep_settings,
+            T(smaller(maximum_dt, double(std::numeric_limits<T>::max()))), bad_.data());
+        AF_CUDA(cudaGetLastError());
+        AF_CUDA(cub::DeviceReduce::Min(scratch_->data(), bytes_, local_dt_->data(), minimum_.data(),
+                                       n_));
+        AF_CUDA(cub::DeviceReduce::Max(scratch_->data(), bytes_, local_dt_->data(),
+                                       maximum_->data(), n_));
+        auto lo = minimum_.download()[0], hi = maximum_->download()[0];
+        check_state();
+        rhs();
+        pseudo_rk<<<blocks_, block_size>>>(view(u_), view(u_), view(stage_), view(res_),
+                                           local_dt_->data(), lo, steady_.local_time_step, false,
+                                           s_.gas, bad_.data());
+        AF_CUDA(cudaGetLastError());
+        check_state();
+        convert(stage_);
+        rhs();
+        pseudo_rk<<<blocks_, block_size>>>(view(u_), view(stage_), view(u_), view(res_),
+                                           local_dt_->data(), lo, steady_.local_time_step, true,
+                                           s_.gas, bad_.data());
+        AF_CUDA(cudaGetLastError());
+        check_state();
+        convert(u_);
+        rhs();
+        reduce_residual(scratch_->data(), bytes_);
+        auto sums = sums_.download()[0];
+        for (int k = 0; k < 4; ++k) {
+            stats_.residual[k] = std::sqrt(double(sums[k]) / n_);
+            if (!std::isfinite(stats_.residual[k]))
+                throw std::runtime_error("Nonfinite CUDA pseudo residual");
+        }
+        auto counts = counts_.download();
+        stats_.flux_fallbacks = counts[0];
+        stats_.reconstruction_fallbacks = counts[1];
+        stop_.record();
+        stats_.iteration_ms = stop_.since(start_);
+        stats_.total_ms += stats_.iteration_ms;
+        stats_.pseudo_dt_min = lo;
+        stats_.pseudo_dt_max = steady_.local_time_step ? hi : lo;
+        ++stats_.iterations;
+    }
+
   public:
-    GpuSolver(const Mesh &m, Settings s)
-        : s_(s), n_(int(m.cells.size())), nf_(int(m.faces.size())),
+    GpuSolver(const Mesh &m, Settings s, SteadySettings steady)
+        : s_(s), steady_(steady), n_(int(m.cells.size())), nf_(int(m.faces.size())),
           blocks_((n_ + block_size - 1) / block_size), cells_(n_), faces_(nf_), u_(4 * n_),
           w_(4 * n_), sx_(4 * n_), sr_(4 * n_), gx_(4 * n_), gr_(4 * n_), stage_(4 * n_),
           res_(4 * n_), flux_(4 * nf_), dt_(n_), minimum_(1) {
@@ -152,6 +228,14 @@ template <class T> class GpuSolver final : public Solver {
         AF_CUDA(cub::DeviceReduce::Min(nullptr, min_bytes, dt_.data(), minimum_.data(), n_));
         reduce_residual(nullptr, sum_bytes);
         bytes_ = larger(min_bytes, sum_bytes);
+        if (steady.enabled) {
+            local_dt_ = std::make_unique<cuda::Buffer<T>>(n_);
+            maximum_ = std::make_unique<cuda::Buffer<T>>(1);
+            std::size_t max_bytes = 0;
+            AF_CUDA(cub::DeviceReduce::Max(nullptr, max_bytes, local_dt_->data(), maximum_->data(),
+                                           n_));
+            bytes_ = larger(bytes_, max_bytes);
+        }
         scratch_ = std::make_unique<cuda::Buffer<unsigned char>>(bytes_);
         bad_.zero();
         counts_.zero();
@@ -176,11 +260,17 @@ template <class T> class GpuSolver final : public Solver {
         stats_.device_bytes = cells_.bytes() + faces_.bytes() +
                               (33 * n_ + 4 * nf_ + 5) * sizeof(T) + bad_.bytes() + counts_.bytes() +
                               bytes_;
+        if (steady_.enabled)
+            stats_.device_bytes += local_dt_->bytes() + maximum_->bytes();
         ready_ = true;
     }
     void step(double maximum_dt) override {
         if (!ready_ || !(maximum_dt > 0) || !std::isfinite(maximum_dt))
             throw std::invalid_argument("CUDA FV not ready or invalid time cap");
+        if (steady_.enabled) {
+            pseudo_step(maximum_dt);
+            return;
+        }
         start_.record();
         rk_stage_ = 0;
         convert(u_);
@@ -242,11 +332,13 @@ template <class T> class GpuSolver final : public Solver {
     const StepStats &stats() const override { return stats_; }
 };
 } // namespace
-std::unique_ptr<Solver> make_cuda_solver(const Mesh &m, Settings s, bool fp64) {
+std::unique_ptr<Solver> make_cuda_solver(const Mesh &m, Settings s, bool fp64,
+                                         SteadySettings steady) {
     m.validate();
     validate_settings(s);
+    steady.validate();
     if (fp64)
-        return std::make_unique<GpuSolver<double>>(m, s);
-    return std::make_unique<GpuSolver<float>>(m, s);
+        return std::make_unique<GpuSolver<double>>(m, s, steady);
+    return std::make_unique<GpuSolver<float>>(m, s, steady);
 }
 } // namespace astraflow

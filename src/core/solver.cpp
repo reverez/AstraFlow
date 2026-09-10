@@ -1,6 +1,10 @@
 #include "astraflow/core/solver.hpp"
 #include <stdexcept>
 namespace astraflow {
+void SteadySettings::validate() const {
+    if (!(cfl > 0 && cfl <= 0.5) || !std::isfinite(cfl))
+        throw std::invalid_argument("Steady CFL must be finite and in (0, 0.5]");
+}
 void validate_settings(const Settings &s) {
     for (double x : {s.p0, s.t0, s.back_pressure})
         if (!(x > 0) || !std::isfinite(x))

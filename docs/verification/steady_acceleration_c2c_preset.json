@@ -1,0 +1,18 @@
+{
+  "base_commit": "6cd80f2962ff448f1d5a046368609aea64e7d82d",
+  "coarse_source_sha256": {
+    "config.json": "d7eff7ebb1776307c86ce335d7afb8f35207839041d602ffd22c70e414f521f5",
+    "summary.json": "c63d0ab169a04c74152c36603ba8d99a8dbf3323c2b932cf369539ed5f5782e3",
+    "final_state.vts": "2808764493c9c3fe7c0bc9a559cb4f6917c7c35c6b25414207b1c7ea4abcc995",
+    "convergence.csv": "916347e2f45f9b81991049ee12ed3a8da0528cf6f0563bf9f05696d52fdfebc7"
+  },
+  "field_linf": 1e-08,
+  "primary_engineering_relative": 1e-06,
+  "boundary_mass_mismatch": 1e-06,
+  "boundary_mass_mismatch_absolute_difference": 1e-08,
+  "zero_fallbacks": true,
+  "coarse_max_iterations": 150000,
+  "medium_max_iterations": 250000,
+  "steady_cfl": 0.4,
+  "documentation_sha256_before_evaluation": "2876dacc531785f7bdaf597da7891421bae66ec5fc2eae57b12494132560ef00"
+}

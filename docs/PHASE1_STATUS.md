@@ -56,3 +56,11 @@ Scientific acceptance is unresolved. CFL sensitivity and an additional 50,000-st
 - [x] Equal-time 100.397418 µs MC, Van Leer and first-order diagnostics from the same saved medium field; all diagnostic only. Numerical balance assembly error <=6.88e-15; signed near-axis residual cycles and neighboring limiter switches measured.
 - [x] Evidence, three figures and full-cadence focus traces recorded in [residual_closure_c2b.md](verification/residual_closure_c2b.md). An implicit pseudo-transient proposal preserves R(U)=0; no acceleration implemented.
 - [ ] Scientific acceptance remains unresolved: no accepted medium/fine pair or grid uncertainty. Accepted 128×32 and original 250k cold-medium cases were not rerun; 512×128 was not started. Production mathematics and all convergence gates remain unchanged.
+
+### V1.1-C2c local pseudo-time acceleration
+
+- [x] Optional CPU/CUDA local pseudo-time RK2 mode implemented using the unchanged spatial residual; physical SSP-RK2 remains the default, with explicit physical/pseudo metadata and separate conservation estimates.
+- [x] CPU 7/7 and CUDA-enabled 9/9 full CTest pass; 11 project Python analysis tests pass.
+- [x] Required 128×32 CUDA FP64 original-initializer experiment reaches the unchanged convergence monitor at 34,260 iterations / 44.501661 s versus the saved 82,480 / 64.689289 s: observed wall-time ratio 1.45364×.
+- [ ] **Coarse root-equivalence fails:** normalized conservative-field Linf=2.79363e-6 exceeds the preset 1e-8. Primary engineering differences <=4.76407e-9, zero fallbacks and numerical boundary mass mismatch 2.66069e-9 pass. No bound was changed.
+- [ ] Medium advancement blocked by that failed gate. No C2c 256×64 or 512×128 run was started. See [steady_acceleration_c2c.md](verification/steady_acceleration_c2c.md) for the distinction between convergence-monitor termination and validated field equivalence.

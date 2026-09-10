@@ -13,9 +13,16 @@ struct Settings {
     double p0 = 1, t0 = 1, back_pressure = 0.1;
     double wall_temperature = 0, upper_wall_speed = 0;
 };
+struct SteadySettings {
+    bool enabled = false, local_time_step = true;
+    double cfl = 0.4;
+    void validate() const;
+};
 struct StepStats {
     int iterations = 0;
     double time = 0, dt = 0, iteration_ms = 0, total_ms = 0;
+    // No common physical clock exists for local pseudo-time. These are normalized step bounds.
+    double pseudo_dt_min = 0, pseudo_dt_max = 0;
     std::array<double, 4> residual{};
     std::array<double, 7> stage_ms{};
     std::uint64_t flux_fallbacks = 0, reconstruction_fallbacks = 0;
@@ -29,9 +36,11 @@ class Solver {
     virtual std::vector<double> state() const = 0;
     virtual const StepStats &stats() const = 0;
 };
-std::unique_ptr<Solver> make_cpu_solver(const Mesh &, Settings, bool fp64 = true);
+std::unique_ptr<Solver> make_cpu_solver(const Mesh &, Settings, bool fp64 = true,
+                                        SteadySettings = {});
 #ifdef ASTRAFLOW_HAS_CUDA
-std::unique_ptr<Solver> make_cuda_solver(const Mesh &, Settings, bool fp64 = false);
+std::unique_ptr<Solver> make_cuda_solver(const Mesh &, Settings, bool fp64 = false,
+                                         SteadySettings = {});
 #endif
 void validate_settings(const Settings &);
 } // namespace astraflow

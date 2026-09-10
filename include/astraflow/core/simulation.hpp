@@ -20,6 +20,11 @@ class Simulation {
     const Config &config() const { return config_; }
     const Scales &scales() const { return scales_; }
     StepStats stats() const;
+    std::string time_integration() const {
+        return config_.steady.enabled ? "pseudo_time" : "physical";
+    }
+    nlohmann::json balance() const;
+    const nlohmann::json &sampled_balance() const { return balance_; }
     const StepStats &normalized_stats() const { return solver_->stats(); }
 
   private:
@@ -30,7 +35,9 @@ class Simulation {
     bool stopped_ = false;
     std::string failure_;
     Scales scales_;
-    Mesh physical_mesh_;
+    Mesh physical_mesh_, normalized_mesh_;
+    Settings normalized_settings_;
+    nlohmann::json balance_ = nlohmann::json::object();
     std::unique_ptr<Solver> solver_;
 };
 } // namespace astraflow

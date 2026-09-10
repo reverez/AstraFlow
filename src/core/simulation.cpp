@@ -1,4 +1,5 @@
 #include "astraflow/core/simulation.hpp"
+#include "astraflow/analysis/balance.hpp"
 #include "astraflow/analysis/engineering.hpp"
 #include <algorithm>
 #include <stdexcept>
@@ -69,11 +70,13 @@ Simulation::Simulation(Config config, const std::vector<State<double>> &physical
     s.back_pressure /= scales_.pressure;
     s.wall_temperature /= scales_.temperature;
     s.upper_wall_speed /= scales_.velocity;
+    normalized_mesh_ = m;
+    normalized_settings_ = s;
     if (config_.backend == "cpu")
-        solver_ = make_cpu_solver(m, s, config_.precision == "double");
+        solver_ = make_cpu_solver(m, s, config_.precision == "double", config_.steady);
 #ifdef ASTRAFLOW_HAS_CUDA
     else
-        solver_ = make_cuda_solver(m, s, config_.precision == "double");
+        solver_ = make_cuda_solver(m, s, config_.precision == "double", config_.steady);
 #else
     else
         throw std::runtime_error("CUDA requested but this build has CUDA disabled");
@@ -91,6 +94,9 @@ void Simulation::step() {
         if (s.iterations == 1 || s.iterations % config_.convergence.sampling_interval == 0) {
             engineering_ = engineering(physical_mesh_, state(), config_.settings.gas,
                                        config_.settings.back_pressure);
+            balance_ = balance();
+            engineering_["numerical_boundary_mass_flux_mismatch"] =
+                balance_.at("numerical_boundary_mass_flux_mismatch");
             sampled_iteration_ = s.iterations;
             monitor_.sample(s.iterations, s.residual, engineering_);
         }
@@ -131,6 +137,16 @@ std::vector<double> Simulation::state() const {
         for (std::size_t i = 0; i < n; ++i)
             u[k * n + i] *= factors[k];
     return u;
+}
+nlohmann::json Simulation::balance() const {
+    auto b = finite_volume_balance(normalized_mesh_, solver_->state(), normalized_settings_).global;
+    const auto &flux = b.at("boundary_fluxes");
+    double inlet = -flux.at("inlet").at("outward_total")[0].get<double>();
+    double outlet = flux.at("outlet").at("outward_total")[0].get<double>();
+    b["numerical_boundary_mass_flux_mismatch"] =
+        std::abs(outlet - inlet) / std::max({std::abs(inlet), std::abs(outlet), 1e-30});
+    b["units"] = "nondimensional; per radian for axisymmetric geometry";
+    return b;
 }
 StepStats Simulation::stats() const {
     auto s = solver_->stats();

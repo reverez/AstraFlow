@@ -7,6 +7,8 @@ namespace {
 template <class T> class CpuSolver final : public Solver {
     Mesh mesh_;
     Settings settings_;
+    SteadySettings steady_;
+    std::vector<T> local_dt_;
     int n_, nf_;
     bool ready_ = false;
     std::vector<T> u_, w_, sx_, sr_, gx_, gr_, stage_, res_, flux_;
@@ -44,11 +46,59 @@ template <class T> class CpuSolver final : public Solver {
                                    settings_));
     }
 
+    void pseudo_step(double maximum_dt) {
+        auto start = std::chrono::steady_clock::now();
+        convert(u_);
+        auto w = view(w_);
+        Settings timestep_settings = settings_;
+        timestep_settings.cfl = steady_.cfl;
+        T minimum = T(smaller(maximum_dt, double(std::numeric_limits<T>::max()))), maximum = 0;
+        for (int i = 0; i < n_; ++i) {
+            auto dt = smaller(
+                T(smaller(maximum_dt, double(std::numeric_limits<T>::max()))),
+                fv_timestep(w.get(i), mesh_.cells[i], mesh_.faces.data(), timestep_settings));
+            if (!(dt > 0) || !std::isfinite(dt))
+                throw std::runtime_error("Invalid local pseudo timestep");
+            local_dt_[i] = dt;
+            minimum = smaller(minimum, dt);
+            maximum = larger(maximum, dt);
+        }
+        if (!steady_.local_time_step) {
+            std::fill(local_dt_.begin(), local_dt_.end(), minimum);
+            maximum = minimum;
+        }
+        rhs();
+        for (int k = 0; k < 4 * n_; ++k)
+            stage_[k] = u_[k] + local_dt_[k % n_] * res_[k];
+        convert(stage_);
+        rhs();
+        for (int k = 0; k < 4 * n_; ++k)
+            u_[k] = T(.5) * (u_[k] + stage_[k] + local_dt_[k % n_] * res_[k]);
+        convert(u_);
+        // Certify R(U) itself at the completed pseudo iterate, never dt_i R(U).
+        rhs();
+        stats_.residual = {};
+        for (int k = 0; k < 4 * n_; ++k)
+            stats_.residual[k / n_] += double(res_[k]) * double(res_[k]) / n_;
+        for (auto &r : stats_.residual) {
+            r = std::sqrt(r);
+            if (!std::isfinite(r))
+                throw std::runtime_error("Nonfinite pseudo residual");
+        }
+        stats_.pseudo_dt_min = minimum;
+        stats_.pseudo_dt_max = maximum;
+        ++stats_.iterations;
+        stats_.iteration_ms =
+            std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start)
+                .count();
+        stats_.total_ms += stats_.iteration_ms;
+    }
+
   public:
-    CpuSolver(const Mesh &m, Settings s)
-        : mesh_(m), settings_(s), n_(int(m.cells.size())), nf_(int(m.faces.size())), u_(4 * n_),
-          w_(4 * n_), sx_(4 * n_), sr_(4 * n_), gx_(4 * n_), gr_(4 * n_), stage_(4 * n_),
-          res_(4 * n_), flux_(4 * nf_) {}
+    CpuSolver(const Mesh &m, Settings s, SteadySettings steady)
+        : mesh_(m), settings_(s), steady_(steady), local_dt_(steady.enabled ? m.cells.size() : 0),
+          n_(int(m.cells.size())), nf_(int(m.faces.size())), u_(4 * n_), w_(4 * n_), sx_(4 * n_),
+          sr_(4 * n_), gx_(4 * n_), gr_(4 * n_), stage_(4 * n_), res_(4 * n_), flux_(4 * nf_) {}
     void initialize(const std::vector<State<double>> &w) override {
         if (w.size() != std::size_t(n_))
             throw std::invalid_argument("FV initial state size mismatch");
@@ -67,6 +117,10 @@ template <class T> class CpuSolver final : public Solver {
     void step(double maximum_dt) override {
         if (!ready_ || !(maximum_dt > 0) || !std::isfinite(maximum_dt))
             throw std::invalid_argument("FV solver not ready or invalid time cap");
+        if (steady_.enabled) {
+            pseudo_step(maximum_dt);
+            return;
+        }
         auto start = std::chrono::steady_clock::now();
         convert(u_);
         T dt = T(smaller(maximum_dt, double(std::numeric_limits<T>::max())));
@@ -103,11 +157,13 @@ template <class T> class CpuSolver final : public Solver {
     const StepStats &stats() const override { return stats_; }
 };
 } // namespace
-std::unique_ptr<Solver> make_cpu_solver(const Mesh &m, Settings s, bool fp64) {
+std::unique_ptr<Solver> make_cpu_solver(const Mesh &m, Settings s, bool fp64,
+                                        SteadySettings steady) {
     m.validate();
     validate_settings(s);
+    steady.validate();
     if (fp64)
-        return std::make_unique<CpuSolver<double>>(m, s);
-    return std::make_unique<CpuSolver<float>>(m, s);
+        return std::make_unique<CpuSolver<double>>(m, s, steady);
+    return std::make_unique<CpuSolver<float>>(m, s, steady);
 }
 } // namespace astraflow

@@ -21,6 +21,10 @@ std::string limiter_name(Limiter l) {
 void Config::validate() const {
     validate_settings(settings);
     convergence.validate();
+    steady.validate();
+    if (steady.enabled && (end_time != 0 || settings.profile))
+        throw std::invalid_argument(
+            "Pseudo-time requires end_time=0 and physical stage profiling disabled");
     if ((problem == "rocket_nozzle" || problem == "isentropic_nozzle") &&
         settings.upper_wall_speed != 0)
         throw std::invalid_argument(
@@ -78,6 +82,10 @@ nlohmann::json Config::json() const {
              {{"cfl", settings.cfl},
               {"limiter", limiter_name(settings.limiter)},
               {"profile", settings.profile}}},
+            {"steady_solver",
+             {{"enabled", steady.enabled},
+              {"local_time_step", steady.local_time_step},
+              {"cfl", steady.cfl}}},
             {"runtime",
              {{"backend", backend},
               {"precision", precision},
@@ -96,7 +104,7 @@ nlohmann::json Config::json() const {
 }
 Config Config::parse(const nlohmann::json &j) {
     keys(j, {"problem", "gas", "geometry", "mesh", "boundary_conditions", "numerics", "runtime",
-             "output", "convergence"});
+             "output", "convergence", "steady_solver"});
     Config c;
     c.problem = j.value("problem", c.problem);
     auto read = [&](const char *section, std::initializer_list<const char *> allowed) {
@@ -152,6 +160,10 @@ Config Config::parse(const nlohmann::json &j) {
         c.settings.limiter = Limiter::VanLeer;
     else
         throw std::invalid_argument("Unknown limiter");
+    auto st = read("steady_solver", {"enabled", "local_time_step", "cfl"});
+    c.steady.enabled = st.value("enabled", false);
+    c.steady.local_time_step = st.value("local_time_step", true);
+    c.steady.cfl = st.value("cfl", 0.4);
     auto r = read("runtime",
                   {"backend", "precision", "max_iterations", "end_time", "residual_tolerance"});
     c.backend = r.value("backend", c.backend);
