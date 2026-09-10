@@ -180,3 +180,7 @@ The final Release CPU suite passes **7/7**, and the final Release CUDA suite pas
 ## Limitations
 
 Grid independence and convergence of this ideal-gas axisymmetric nozzle calculation do not constitute experimental validation of a real rocket engine. This study does not add physics or establish accuracy for arbitrary geometries/backpressures. Wall shear is not exported because V1 has no independently verified wall-shear output subsystem.
+
+## C2b follow-up
+
+The [C2b investigation](residual_closure_c2b.md) adds true four-equation balances, signed residual/limiter traces, conservative warm initialization and equal-time reconstruction diagnostics. It finds reconstruction-sensitive oscillations; the new production warm case remains unconverged at 250,000 steps. The accepted results and original medium history above are preserved. No finer grid or Richardson/GCI result is added.

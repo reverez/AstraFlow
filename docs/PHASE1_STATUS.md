@@ -48,3 +48,11 @@ Only specified Phase 2 features: plume, chemistry, turbulence, advanced thermody
 - [ ] C6: final software pass is green (CPU 7/7, CUDA 9/9, analysis tests and output integrity); scientific acceptance remains false because C3 did not pass. Review branch published without merging main.
 
 Scientific acceptance is unresolved. CFL sensitivity and an additional 50,000-step diagnostic continuation did not resolve the medium-grid residual. Existing cell-based mass estimate differs from the numerical boundary-flux balance; neither criterion was changed. Details and exact criteria are in [rocket_scientific_closure.md](verification/rocket_scientific_closure.md).
+
+### V1.1-C2b residual investigation
+
+- [x] True four-equation numerical boundary/global balances, signed local convective/transport/source decomposition, fixed-cell primitive/gradient/limiter traces and targeted regressions.
+- [x] Conservative 128×32-to-256×64 initialization: maximum parent integral error 5.00e-16, no positivity limiting. Fresh CUDA FP64 production run ends at 250,000 steps with energy residual 4.57e-5 and cell mass mismatch 0.00117821; not converged.
+- [x] Equal-time 100.397418 µs MC, Van Leer and first-order diagnostics from the same saved medium field; all diagnostic only. Numerical balance assembly error <=6.88e-15; signed near-axis residual cycles and neighboring limiter switches measured.
+- [x] Evidence, three figures and full-cadence focus traces recorded in [residual_closure_c2b.md](verification/residual_closure_c2b.md). An implicit pseudo-transient proposal preserves R(U)=0; no acceleration implemented.
+- [ ] Scientific acceptance remains unresolved: no accepted medium/fine pair or grid uncertainty. Accepted 128×32 and original 250k cold-medium cases were not rerun; 512×128 was not started. Production mathematics and all convergence gates remain unchanged.

@@ -1,11 +1,13 @@
 #pragma once
 #include "astraflow/physics/state.hpp"
 namespace astraflow {
-enum class Limiter { Minmod, VanLeer, MC };
+enum class Limiter { Minmod, VanLeer, MC, FirstOrderDiagnostic };
 template <class T> AF_HD T minmod(T a, T b) {
     return a * b <= 0 ? T(0) : (a > 0 ? smaller(a, b) : larger(a, b));
 }
 template <class T> AF_HD T limit(T a, T b, Limiter limiter) {
+    if (limiter == Limiter::FirstOrderDiagnostic)
+        return T(0);
     if (limiter == Limiter::Minmod)
         return minmod(a, b);
     if (limiter == Limiter::VanLeer)

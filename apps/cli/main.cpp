@@ -2,6 +2,7 @@
 #include "astraflow/io/output.hpp"
 #include <chrono>
 #include <csignal>
+#include <fstream>
 namespace {
 volatile std::sig_atomic_t interrupted = 0;
 void interrupt(int) { interrupted = 1; }
@@ -10,7 +11,7 @@ void interrupt(int) { interrupted = 1; }
 #include <optional>
 int main(int argc, char **argv) {
     try {
-        std::filesystem::path config_path;
+        std::filesystem::path config_path, initial_path;
         std::optional<std::string> backend, precision, output;
         std::optional<int> iterations;
         for (int i = 1; i < argc; ++i) {
@@ -18,7 +19,8 @@ int main(int argc, char **argv) {
             if (arg == "--help") {
                 std::cout << "AstraFlow finite-volume CFD\nUsage: astraflow_cli --config FILE "
                              "[--backend cpu|cuda] [--precision float|double]\n  [--output "
-                             "DIRECTORY] [--max-iterations N]\n  --device-info   Detect GPU and "
+                             "DIRECTORY] [--max-iterations N] [--initial-state FILE]\n  "
+                             "--device-info   Detect GPU and "
                              "execute native architecture probe\n";
                 return 0;
             }
@@ -31,6 +33,8 @@ int main(int argc, char **argv) {
             std::string value = argv[++i];
             if (arg == "--config")
                 config_path = value;
+            else if (arg == "--initial-state")
+                initial_path = value;
             else if (arg == "--backend")
                 backend = value;
             else if (arg == "--precision")
@@ -60,8 +64,43 @@ int main(int argc, char **argv) {
         config.validate();
         if (config.backend == "cuda")
             std::cout << astraflow::device_info() << '\n';
-        astraflow::Simulation simulation(config);
+        std::vector<astraflow::State<double>> initial;
+        nlohmann::json initialization;
+        if (!initial_path.empty()) {
+            std::ifstream in(initial_path);
+            if (!in)
+                throw std::runtime_error("Cannot open initial-state file");
+            in >> initialization;
+            if (initialization.at("schema") != 1)
+                throw std::invalid_argument("Unknown initial-state schema");
+            auto effective = config.json();
+            for (auto key :
+                 {"problem", "gas", "geometry", "mesh", "boundary_conditions", "numerics"})
+                if (initialization.at("configuration").at(key) != effective.at(key))
+                    throw std::invalid_argument("Initial-state configuration mismatch");
+            for (auto row : initialization.at("physical_conservative")) {
+                if (!row.is_array() || row.size() != 4)
+                    throw std::invalid_argument("Invalid initial conservative row");
+                astraflow::State<double> q;
+                for (int k = 0; k < 4; ++k)
+                    q[k] = row[k].get<double>();
+                auto w = astraflow::primitive(q, config.settings.gas);
+                if (!astraflow::physical(w, config.settings.gas))
+                    throw std::invalid_argument("Nonphysical initial state");
+                initial.push_back(w);
+            }
+            if (initial.size() != std::size_t(config.geometry.nx * config.geometry.nr))
+                throw std::invalid_argument("Initial-state grid size mismatch");
+        }
+        astraflow::Simulation simulation(config, initial);
         astraflow::RunOutput writer(simulation);
+        if (!initial_path.empty()) {
+            initialization.erase("physical_conservative");
+            initialization["source_file"] = std::filesystem::absolute(initial_path).string();
+            std::ofstream meta(writer.directory() / "initialization.json");
+            meta.exceptions(std::ios::failbit | std::ios::badbit);
+            meta << initialization.dump(2) << '\n';
+        }
         auto start = std::chrono::steady_clock::now();
         std::signal(SIGINT, interrupt);
         std::signal(SIGTERM, interrupt);

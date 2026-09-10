@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <stdexcept>
 namespace astraflow {
-Simulation::Simulation(Config config)
+Simulation::Simulation(Config config, const std::vector<State<double>> &physical_initial)
     : config_(std::move(config)), monitor_(config_.convergence, config_.residual_tolerance) {
     config_.validate();
     auto s = config_.settings;
@@ -40,7 +40,9 @@ Simulation::Simulation(Config config)
         c.radial_source *= L;
     }
     std::vector<State<double>> w;
-    if (nozzle)
+    if (!physical_initial.empty())
+        w = physical_initial;
+    else if (nozzle)
         w = nozzle_initial_state(physical_mesh_, config_.geometry, s);
     else
         for (auto c : physical_mesh_.cells) {

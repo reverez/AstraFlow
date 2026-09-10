@@ -6,7 +6,7 @@ struct Scales {
 };
 class Simulation {
   public:
-    explicit Simulation(Config);
+    explicit Simulation(Config, const std::vector<State<double>> &physical_initial = {});
     void step();
     bool finished() const;
     std::string termination() const;

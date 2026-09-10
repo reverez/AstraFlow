@@ -26,6 +26,9 @@ See [`docs/PHASE1_STATUS.md`](docs/PHASE1_STATUS.md).
 
 The 256×64 case remains iteration-limited at 250,000 steps (maximum residual 1.14e-4). Refinement stopped there; **rocket grid independence and Richardson/GCI uncertainty are not established**. No convergence tolerance or solver mathematics was changed. See the [scientific closure report](docs/verification/rocket_scientific_closure.md) for criteria, diagnostics, actual-data figures and the unresolved refined-grid result.
 
+The [C2b residual investigation](docs/verification/residual_closure_c2b.md) finds reconstruction-sensitive signed oscillations and numerical boundary/source balances that assemble to roundoff. Conservative coarse-grid initialization reduces the final medium energy residual to 4.57e-5 but still fails the unchanged closure gates. Equal-time MC, Van Leer and first-order diagnostic traces are published; altered schemes are not accepted study solutions. A root-preserving acceleration proposal is documented, with no pseudo-time implementation.
+
+
 ![Steady 128×32 rocket residual convergence](docs/figures/rocket-residual-convergence.png)
 
 
