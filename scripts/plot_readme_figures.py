@@ -151,17 +151,21 @@ def field(run, out):
     for name, key, unit, scale in (('nozzle-mach', 'Mach', 'Mach number', 1), ('nozzle-pressure', 'pressure', 'Pressure [MPa]', 1e-6),
                                    ('nozzle-temperature', 'temperature', 'Temperature [K]', 1)):
         C = np.array(arrays[key]).reshape(nr, nx) * scale
-        fig, ax = plt.subplots(figsize=(10, 3.6))
+        fig, ax = plt.subplots(figsize=(10, 3.4))
+        magnification = 4
         for sign in (1, -1):
-            m = ax.pcolormesh(X * 1e3, sign * R * 1e3, C, cmap=SEQUENTIAL, shading='flat', rasterized=True)
-        ax.plot(X[-1] * 1e3, R[-1] * 1e3, color=INK, lw=1)
-        ax.plot(X[-1] * 1e3, -R[-1] * 1e3, color=INK, lw=1)
+            m = ax.pcolormesh(X * 1e3, sign * R * 1e3 * magnification, C, cmap=SEQUENTIAL, shading='flat', rasterized=True)
+        ax.plot(X[-1] * 1e3, R[-1] * 1e3 * magnification, color=INK, lw=1)
+        ax.plot(X[-1] * 1e3, -R[-1] * 1e3 * magnification, color=INK, lw=1)
         ax.set_aspect('equal')
         ax.grid(False)
         ax.set_xlabel('x [mm]')
-        ax.set_ylabel('r [mm]')
+        ax.set_ylabel(f'r [mm], radial axis magnified {magnification}x')
+        ticks = [-6, -3, 0, 3, 6]
+        ax.set_yticks([t * magnification for t in ticks])
+        ax.set_yticklabels([str(t) for t in ticks])
         ax.set_title(f'{unit} — {label}', loc='left', color=INK)
-        cb = fig.colorbar(m, ax=ax, shrink=0.85, pad=0.02)
+        cb = fig.colorbar(m, ax=ax, orientation='horizontal', shrink=0.45, pad=0.22, aspect=40)
         cb.outline.set_visible(False)
         fig.savefig(out / f'{name}.png')
         plt.close(fig)
@@ -237,7 +241,7 @@ def sweep(path, out):
     axes[1].axhline(0, color=AXIS, lw=1)
     axes[1].set_xlabel('Exit-to-throat area ratio')
     axes[1].set_ylabel('2D minus quasi-1D thrust [%]')
-    fig.suptitle(f'Inviscid nozzle expansion sweep, {len(cases)} converged steady cases (local pseudo-time, van Albada, FP64)',
+    fig.suptitle(f'Viscous no-slip nozzle expansion sweep against inviscid quasi-1D theory, {len(cases)} converged steady cases (local pseudo-time, van Albada, CUDA FP64)',
                  fontsize=9, color=INK2, x=0.01, ha='left')
     fig.savefig(out / 'nozzle-sweep.png')
     plt.close(fig)

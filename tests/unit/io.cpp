@@ -42,6 +42,15 @@ TEST_CASE("Configuration roundtrip and invalid fields", "[unit]") {
     j["gas"]["reference_temperature"] = 0;
     REQUIRE_THROWS(Config::parse(j));
     j = c.json();
+    j["boundary_conditions"]["wall"] = "no_slip";
+    j["gas"]["viscosity"] = 1e-5;
+    j["boundary_conditions"]["wall_temperature"] =
+        0.49 * j["boundary_conditions"]["T0"].get<double>();
+    REQUIRE_THROWS(Config::parse(j)); // mirrored ghost temperature would be negative
+    j["boundary_conditions"]["wall_temperature"] =
+        0.5 * j["boundary_conditions"]["T0"].get<double>();
+    REQUIRE_NOTHROW(Config::parse(j));
+    j = c.json();
     j["gas"]["rho_floor"] = -1;
     REQUIRE_THROWS(Config::parse(j));
     j = c.json();

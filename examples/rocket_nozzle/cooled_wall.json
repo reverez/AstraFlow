@@ -26,7 +26,7 @@
     "T0": 2800,
     "back_pressure": 101325,
     "wall": "no_slip",
-    "wall_temperature": 600
+    "wall_temperature": 1500
   },
   "numerics": {
     "cfl": 0.4,

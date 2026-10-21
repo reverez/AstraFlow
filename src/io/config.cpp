@@ -51,6 +51,11 @@ void Config::validate() const {
         throw std::invalid_argument("Invalid iteration settings or wall velocity");
     if (problem == "rocket_nozzle" && settings.gas.viscosity > 0 && !settings.no_slip)
         throw std::invalid_argument("Viscous rocket nozzle requires no-slip wall");
+    // The isothermal wall ghost state mirrors temperature about T_wall, so a wall colder than
+    // half the stagnation temperature can produce a negative ghost temperature.
+    if (settings.wall_temperature > 0 && 2 * settings.wall_temperature < settings.t0)
+        throw std::invalid_argument(
+            "Isothermal wall temperature must be at least half the stagnation temperature");
 }
 nlohmann::json Config::json() const {
     const auto &g = settings.gas;

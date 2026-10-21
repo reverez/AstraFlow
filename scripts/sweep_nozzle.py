@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Nozzle expansion-ratio sweep: steady 2D axisymmetric thrust against quasi-1D isentropic theory.
+"""Nozzle expansion-ratio sweep: steady 2D viscous thrust against quasi-1D isentropic theory.
 
-Each case changes only the exit radius of the inviscid isentropic-nozzle example and is integrated
-to the steady convergence monitor with local pseudo-time. The quasi-1D reference uses the choked
-isentropic mass flow and the supersonic area-Mach relation at the exit, with the same ambient
-pressure in the thrust equation. Agreement is a consistency check between the 2D solver and the
-one-dimensional idealisation; it is not experimental validation. Completed cases are reused.
+Each case changes only the exit radius of the viscous no-slip rocket configuration (V1.2 preset)
+and is integrated to the steady convergence monitor with local pseudo-time. The quasi-1D
+reference is inviscid: choked isentropic mass flow and the supersonic area-Mach relation at the
+exit with the same ambient pressure. The difference therefore contains both two-dimensional and
+viscous effects; it is a consistency check, not experimental validation. Completed cases are
+reused. An earlier attempt with the inviscid slip-wall example plateaued at a residual of about
+1e-5 under local pseudo-time and never met the 1e-6 gate; that configuration is not used here.
 """
 import argparse
 import csv
@@ -48,8 +50,8 @@ def quasi_1d(config, exit_radius):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--root', type=Path, default=ROOT / 'runs/nozzle-sweep')
-    p.add_argument('--config', type=Path, default=ROOT / 'examples/isentropic_nozzle/config.json')
+    p.add_argument('--root', type=Path, default=ROOT / 'runs/nozzle-sweep-viscous')
+    p.add_argument('--config', type=Path, default=ROOT / 'examples/rocket_nozzle/v12_closure.json')
     p.add_argument('--cli', type=Path, default=ROOT / 'build/astraflow_cli')
     p.add_argument('--exit-radii', type=float, nargs='+',
                    default=[0.0055, 0.006, 0.00675, 0.0075, 0.0085, 0.0095])
@@ -64,7 +66,6 @@ def main():
         out = root / name
         config = json.loads(json.dumps(base))
         config['geometry']['exit_radius'] = re
-        config['numerics']['limiter'] = 'van_albada'
         config['steady_solver'] = {'enabled': True, 'local_time_step': True, 'cfl': 0.4}
         config['runtime'].update(max_iterations=args.max_iterations, residual_tolerance=1e-6)
         config['convergence'] = {'minimum_iterations': 5000, 'sampling_interval': 20, 'window_iterations': 2000,
