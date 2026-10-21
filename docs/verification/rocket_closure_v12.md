@@ -113,7 +113,27 @@ decay length in iterations grew by about 8× from medium to fine, not the 2× th
 V1.3 therefore ends partially accepted; the [V1.4 protocol](v14_fine_continuation_protocol.md)
 pre-registers a continuation with a budget derived from this decay record.
 
-<!--V14RESULTS-->
+### V1.4: fine-grid continuation reached a residual plateau
+
+The V1.3 fine trajectory was continued for the pre-registered 4,500,000 iterations (7,000,000
+in total, 8,623 s of continuation wall time, 1.65 ms/iteration, physical time 54.2 ms). It
+terminated `iteration_limit` with residuals [1.46e-6, 3.80e-7, 1.67e-6, 5.03e-6], numerical
+boundary mass mismatch 3.1e-9 and zero fallbacks. The energy residual stopped decaying: e-folding
+length 1.40M iterations over the first million continuation iterations, 2.06M over the second,
+5.0M over the third, then 18M and 58M; it sits at 5.03e-6 for the last 1.5M iterations while the
+engineering observables are stationary to nine significant figures (mass flow 0.0958715694 kg/s,
+thrust 169.759187 N, exit Mach 2.21284302 at 7.0M against 0.0958715690, 169.759187 and
+2.21284302 at 2.5M).
+
+Reading per the V1.4 protocol: **H1' is refuted for the fine grid**. The 512×128 van Albada
+integration converges to a state whose residual floor (5e-6 energy, 1.5–1.7e-6 mass and radial
+momentum) is above the 1e-6 gate, so the grid is **not accepted** and V1.4 ends partial. This
+floor is five to twenty times lower than the MC medium-grid plateau of V1.1 and the observables
+are far more stationary, but it is a plateau, not a slow decay, and no further budget would
+change that. The fine-grid values are reported here as iteration-limited diagnostics only. The
+next step is a residual decomposition of the plateaued fine state with the C2b probe tooling,
+which is outside this study.
+
 
 ## Grid study, Richardson analysis and GCI
 
@@ -124,7 +144,8 @@ defined for the medium/fine pair and cannot be evaluated yet. Richardson extrapo
 require three accepted grids and are **not reported**; the tested implementation in
 `analyze_scientific_closure.py` runs automatically once the fine grid is accepted.
 
-<!--V14GRID-->
+V1.4 did not add a third accepted grid, so the Richardson analysis remains unavailable. The
+coarse/medium pair is the accepted grid-convergence evidence of this release.
 
 ## Figures
 

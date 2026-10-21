@@ -11,7 +11,7 @@ the V1.0/V1.1 acceptance history.
 | V1.1 | Closed as a diagnostic record; MC medium grid never converged | [rocket_scientific_closure.md](verification/rocket_scientific_closure.md), C2b, C2c |
 | V1.2 | Partially accepted per its protocol: coarse closure, CPU parity, pseudo-time root study pass; medium cap under-budgeted | [rocket_closure_v12.md](verification/rocket_closure_v12.md) |
 | V1.3 | Partially accepted: medium grid closed at 760,760 iterations; fine grid reached its 2.5M cap still decaying | same report |
-| V1.4 | Pre-registered fine-grid continuation (4.5M budget); see the report for the outcome | [v14_fine_continuation_protocol.md](verification/v14_fine_continuation_protocol.md) |
+| V1.4 | Partial: fine grid plateaued at a 5e-6 energy residual after 7.0M iterations; not accepted | [v14_fine_continuation_protocol.md](verification/v14_fine_continuation_protocol.md), report |
 | V2.0 | Complete | this file, `CHANGELOG` section below |
 
 Release suites: CPU 8/8 CTest entries (37 Catch2 cases, 7,501 assertions), CUDA 10/10, 11 Python
@@ -58,8 +58,13 @@ Tooling:
   mass mismatch 1.1e-9, zero fallbacks. First closure of the medium rocket grid in the project.
 - Coarse-to-medium changes: mass flow 0.50%, thrust 0.44%, Isp 0.06%, exit pressure 0.04%, exit
   Mach 0.8%.
-- 512×128: 2.5M iterations, energy residual 2.2e-5 and decaying exponentially (e-folding
-  1.1–1.3M iterations); not accepted; continuation pre-registered as V1.4.
+- Cooled-wall demonstration (1500 K isothermal wall, Sutherland viscosity, local pseudo-time):
+  `steady_converged` at 27,640 iterations, wall mass flux −8e-17, 3.30 kW wall heat transfer
+  closing the inlet/outlet energy budget, peak heat flux 0.96 MW/m², viscous drag 3.69 N.
+- Expansion sweep (six viscous no-slip cases, area ratios 1.5–4.5, all `steady_converged`):
+  2D thrust 1.5–1.6% below inviscid quasi-1D theory, mass flow within 0.53%.
+- 512×128: 7.0M iterations in total (V1.3 + V1.4); the energy residual plateaus at 5.0e-6 with
+  observables stationary to nine figures; not accepted. Richardson/GCI therefore not reported.
 
 ## Known limitations and open items
 
@@ -69,8 +74,12 @@ Tooling:
   wall ghost with a diagnostic counter would remove that restriction.
 - The "throat Mach" observable samples the minimum-area station whose cell-centre position moves
   under refinement; it is reported but not used as a convergence measure.
-- Fine-grid physical-time convergence is slow (decay length grew ~8× from medium to fine, against
-  the 2× budgeted); pseudo-time or an implicit steady solver would be the next acceleration step.
+- The 512×128 van Albada integration has a residual floor (5e-6 energy) above the 1e-6 gate; a
+  residual decomposition of that state with the C2b probe tooling is the next study.
+- Isothermal walls leaked mass at 1e-3 of the inlet flow in the first cooled-wall run because the
+  cold-wall ghost density made the wall Riemann problem asymmetric; V2.0 keeps the interior
+  density in the convective ghost so walls are exactly impermeable (tested), and applies the
+  temperature mirror only to transport gradients and viscous fluxes.
 - Wall-time comparisons between runs of the campaign are affected by laptop load variance and are
   reported as such; iteration counts are the reliable measure.
 - Not attempted in V2 because they cannot be verified to the project's standard here: external

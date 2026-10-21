@@ -41,7 +41,7 @@ This is an ongoing research project in verified scientific computing. Every numb
 |---|---|---|
 | **V1.0** (tag `v1.0.0`) | Milestones M0–M9: CPU and CUDA Euler and axisymmetric Navier–Stokes solvers, analytical verification, engineering analysis, CLI and GUI, CUDA profiling, final acceptance | Complete |
 | **V1.1** | Scientific closure of the rocket case with the MC limiter: steady convergence monitor, C2b residual investigation, C2c local pseudo-time | Complete as a diagnostic record; medium-grid closure **not** achieved with MC |
-| **V1.2** | Pre-registered re-study with the smooth van Albada limiter and the numerical boundary mass gate, three-grid Richardson/GCI, pseudo-time root study | Partially accepted: coarse and medium grids closed, pseudo-time root study passed; fine grid continuing under the pre-registered V1.4 budget |
+| **V1.2** | Pre-registered re-study with the smooth van Albada limiter and the numerical boundary mass gate, three-grid Richardson/GCI, pseudo-time root study | Partially accepted: coarse and medium grids closed, pseudo-time root study passed; the fine grid plateaued at a 5e-6 residual under the pre-registered V1.4 budget and is not accepted |
 | **V2.0** | Solver optimisation (one host transfer per CUDA step, solver-side boundary fluxes, OpenMP CPU backend), Sutherland/power-law transport, wall shear and heat-flux analysis, state export/import, nozzle sweep tooling, this document | Complete; see [docs/STATUS.md](docs/STATUS.md) |
 
 Release suites at V2.0: CPU 8/8 CTest entries (37 Catch2 cases), CUDA 10/10, plus 11 Python analysis tests. The V2 executable reproduces the V1.1 executable's 2,000-iteration FP64 rocket field **bitwise**.
@@ -68,6 +68,8 @@ Release suites at V2.0: CPU 8/8 CTest entries (37 Catch2 cases), CUDA 10/10, plu
 <td width="50%"><img src="docs/figures/nozzle-sweep.png" alt="Thrust versus expansion ratio against quasi-1D theory"></td>
 </tr>
 </table>
+
+<sub>Top: Mach and pressure fields of the accepted 128 × 32 steady state. Bottom left: Sod shock tube against an independent exact Riemann solution, and CPU versus CUDA time per iteration. Bottom right: wall shear and conductive heat flux along a 1500 K isothermal nozzle wall with Sutherland viscosity (steady in 27,640 pseudo-time iterations; 3.30 kW leaves through the wall, which closes the inlet/outlet energy budget of the four-equation balance to 1e-5 relative, peak heat flux 0.96 MW/m², viscous drag 3.69 N), and a six-case expansion sweep where the 2D viscous thrust sits 1.5–1.6% below inviscid quasi-1D theory with mass flow within 0.53%.</sub>
 
 <p align="center">
   <img src="docs/screenshots/astraflow.png" alt="AstraFlow interactive interface on WSLg" width="96%"><br>
@@ -225,13 +227,13 @@ The [V1.2 protocol](docs/verification/v12_closure_protocol.md) was committed bef
 | 128 × 32 | van Albada | **49,480** | `steady_converged` | 2.5e-7, 2.8e-8, 1.9e-7, 8.2e-7 | 3.2e-9 |
 | 256 × 64 | MC (V1.1) | 250,000 | `iteration_limit`, plateau | 3.4e-5, 1.6e-5, 2.7e-5, 1.1e-4 | 1.3e-7 |
 | 256 × 64 | van Albada | **760,760** | `steady_converged` | 3.0e-7, 2.8e-8, 2.3e-7, 9.9e-7 | 1.1e-9 |
-| 512 × 128 | van Albada | 2,500,000 (cap) | `iteration_limit`, decaying | 6.5e-6, 7.0e-7, 5.2e-6, 2.2e-5 | 1.2e-7 |
+| 512 × 128 | van Albada | 7,000,000 (cap) | `iteration_limit`, plateau | 1.5e-6, 3.8e-7, 1.7e-6, 5.0e-6 | 3.1e-9 |
 
 - **The medium rocket grid converged for the first time.** Under van Albada the residual decays as a single exponential over 760k iterations with no plateau, which is what the limiter-switching hypothesis predicted; the MC history stalls at 1e-4.
 - **CPU/CUDA FP64 cross-check on 128 × 32:** both backends terminate at iteration 49,480 with a maximum nondimensional conservative-field difference of 1.3e-14.
 - **Pseudo-time root study:** physical-time and local pseudo-time endpoints differ by 1.6e-6, 5.1e-7 and 1.6e-7 in Linf at tolerances 1e-6, 3e-7 and 1e-7 (ratio 10.2, monotone). They converge to the same discrete root; pseudo-time needs about half the iterations.
 - **Grid change coarse → medium:** mass flow 0.50%, thrust 0.44%, Isp 0.06%, exit pressure 0.04%, exit Mach 0.8%. Richardson extrapolation and GCI need the third grid and are not reported.
-- **Fine grid:** at its 2.5M cap the energy residual is 2.2e-5 and still falling exponentially (e-folding 1.1–1.3M iterations). Its values are not accepted. The [V1.4 continuation](docs/verification/v14_fine_continuation_protocol.md) was pre-registered from that decay record.
+- **Fine grid:** the [V1.4 continuation](docs/verification/v14_fine_continuation_protocol.md) took the 512 × 128 trajectory to 7.0M iterations. The energy residual stopped at 5.0e-6 (mass and radial momentum at 1.5 to 1.7e-6) while the observables were stationary to nine figures, so the grid is **not accepted** and no Richardson/GCI estimate is reported. That floor is five to twenty times below the MC plateau of V1.1, but it is a plateau; diagnosing it is the next study.
 
 <p align="center">
   <img src="docs/figures/rocket-residual-convergence.png" alt="Residual convergence of the 256 × 64 continuation" width="80%">
@@ -354,7 +356,7 @@ Dependency direction is strictly downward. See the [architecture overview](docs/
 | M0–M9 | Toolchain, 1D Euler, CUDA Euler, 2D finite volumes, axisymmetric nozzle, viscous Navier–Stokes, analysis and CLI, GUI, profiling, final verification | Complete (`v1.0.0`) |
 | C0–C2 | Convergence monitor, 128 × 32 steady closure, CPU cross-check | Complete |
 | C3–C6 | 256 × 64 / 512 × 128 closure, Richardson/GCI, figures, acceptance with the MC limiter | Blocked by the MC limit cycle; C2b/C2c diagnostics complete |
-| V1.2 | Van Albada re-study under pre-registered criteria | Partially accepted: coarse and medium grids closed, pseudo-time root study passed; fine grid continuing under the pre-registered V1.4 budget |
+| V1.2 | Van Albada re-study under pre-registered criteria | Partially accepted: coarse and medium grids closed, pseudo-time root study passed; the fine grid plateaued at a 5e-6 residual under the pre-registered V1.4 budget and is not accepted |
 | V2.0 | Optimisation, transport models, wall analysis, tooling, documentation | Complete |
 | Next | External plume with far-field boundaries, real-gas thermodynamics, multi-species reacting flow, turbulence modelling, conjugate wall heat transfer, CUDA/OpenGL interoperability, multi-GPU, three-dimensional geometry | Planned; each arrives with its own verification case |
 

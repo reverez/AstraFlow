@@ -1,7 +1,11 @@
 #pragma once
 #include "astraflow/core/solver.hpp"
 namespace astraflow {
-template <class T> AF_HD State<T> boundary_state(State<T> w, const Face &f, Settings s) {
+// `thermal` applies the isothermal-wall temperature mirror (density change). The convective
+// wall flux uses thermal=false so the Riemann problem stays symmetric and the wall is exactly
+// impermeable; transport gradients and viscous fluxes keep the thermal ghost.
+template <class T>
+AF_HD State<T> boundary_state(State<T> w, const Face &f, Settings s, bool thermal = true) {
     if (f.boundary == Boundary::Axis) {
         w[2] = -w[2];
     }
@@ -15,7 +19,7 @@ template <class T> AF_HD State<T> boundary_state(State<T> w, const Face &f, Sett
             w[2] -= T(2 * f.nr) * normal;
         }
     }
-    if (f.boundary == Boundary::Wall && s.wall_temperature > 0) {
+    if (thermal && f.boundary == Boundary::Wall && s.wall_temperature > 0) {
         T temperature = T(2 * s.wall_temperature) - w[3] / (w[0] * T(s.gas.gas_constant));
         w[0] = w[3] / (T(s.gas.gas_constant) * temperature);
     }
@@ -161,9 +165,9 @@ AF_HD Flux<T> fv_flux(int i, View<T> w, View<T> sx, View<T> sr, View<T> gx, View
             corrected = true;
     }
     if (f.left < 0)
-        l = boundary_state(r, f, s);
+        l = boundary_state(r, f, s, false);
     if (f.right < 0)
-        r = boundary_state(l, f, s);
+        r = boundary_state(l, f, s, false);
     auto result = hllc(l, r, s.gas, T(f.nx), T(f.nr));
     if (s.gas.viscosity > 0)
         result.value = result.value - viscous_flux(i, w, gx, gr, cells, faces, s);

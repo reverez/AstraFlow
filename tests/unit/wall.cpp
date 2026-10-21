@@ -120,6 +120,27 @@ TEST_CASE("Isothermal nozzle wall heat transfer equals the wall energy flux of t
             Approx(balance_heat).epsilon(1e-10));
     REQUIRE(summary["wall_heat_transfer_rate"].get<double>() > 0); // hot gas cools to the wall
 }
+TEST_CASE("Isothermal walls are exactly impermeable", "[unit][wall]") {
+    Nozzle g;
+    g.nx = 32;
+    g.nr = 8;
+    auto m = nozzle_mesh(g);
+    Settings s;
+    s.no_slip = true;
+    s.wall_temperature = 0.5;
+    s.gas.viscosity = 1e-3;
+    auto solver = make_cpu_solver(m, s, true);
+    solver->initialize(nozzle_initial_state(m, g, s));
+    for (int i = 0; i < 200; ++i)
+        solver->step();
+    auto balance = finite_volume_balance(m, solver->state(), s).global;
+    // A cold wall changes the ghost density; the convective wall flux must still carry no mass.
+    REQUIRE(balance["boundary_fluxes"]["wall"]["outward_convective"][0].get<double>() ==
+            Approx(0).margin(1e-15));
+    REQUIRE(balance["boundary_fluxes"]["wall"]["outward_convective"][3].get<double>() ==
+            Approx(0).margin(1e-15));
+    REQUIRE(balance["boundary_fluxes"]["wall"]["outward_viscous_thermal"][3].get<double>() != 0);
+}
 TEST_CASE("State export and import roundtrip exactly", "[unit][io]") {
     Config c;
     c.backend = "cpu";
