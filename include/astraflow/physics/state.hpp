@@ -29,10 +29,27 @@ template <class T> AF_HD State<T> operator*(T s, State<T> a) {
         a[k] *= s;
     return a;
 }
+// Transport model: 0 constant viscosity; 1 Sutherland mu_ref (T/T_ref)^1.5 (T_ref+S)/(T+S);
+// 2 power law mu_ref (T/T_ref)^n. Thermal conductivity always follows k = mu cp / Pr.
+enum class ViscosityModel : int { Constant = 0, Sutherland = 1, PowerLaw = 2 };
 struct Gas {
     double gamma = 1.4, gas_constant = 1.0, prandtl = 0.72, viscosity = 0;
     double rho_floor = 1e-10, p_floor = 1e-10, temperature_floor = 1e-10;
+    ViscosityModel viscosity_model = ViscosityModel::Constant;
+    double reference_temperature = 0, sutherland_temperature = 0, viscosity_exponent = 0.7;
 };
+// Dynamic viscosity at a temperature. The constant model returns the reference value through
+// exactly the same conversion as before, so constant-viscosity arithmetic is unchanged.
+template <class T> AF_HD T viscosity(T temperature, Gas g) {
+    if (g.viscosity_model == ViscosityModel::Constant)
+        return T(g.viscosity);
+    T ratio = temperature / T(g.reference_temperature);
+    if (g.viscosity_model == ViscosityModel::Sutherland)
+        return T(g.viscosity) * ratio * sqrt(ratio) *
+               T(g.reference_temperature + g.sutherland_temperature) /
+               (temperature + T(g.sutherland_temperature));
+    return T(g.viscosity) * pow(ratio, T(g.viscosity_exponent));
+}
 template <class T> AF_HD State<T> conservative(State<T> w, Gas g) {
     return {{w[0], w[0] * w[1], w[0] * w[2],
              w[3] / T(g.gamma - 1) + T(0.5) * w[0] * (w[1] * w[1] + w[2] * w[2])}};

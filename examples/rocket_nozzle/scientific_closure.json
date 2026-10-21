@@ -1,0 +1,50 @@
+{
+  "problem": "rocket_nozzle",
+  "gas": {
+    "gamma": 1.4,
+    "gas_constant": 287.0,
+    "prandtl": 0.72,
+    "viscosity": 4e-05
+  },
+  "geometry": {
+    "chamber_radius": 0.006,
+    "chamber_length": 0.03,
+    "throat_radius": 0.0045,
+    "contraction_length": 0.06,
+    "exit_radius": 0.00675,
+    "expansion_length": 0.12
+  },
+  "mesh": {
+    "nx": 128,
+    "nr": 32
+  },
+  "boundary_conditions": {
+    "P0": 2000000,
+    "T0": 2800,
+    "back_pressure": 101325,
+    "wall": "no_slip",
+    "wall_temperature": 0
+  },
+  "numerics": {
+    "cfl": 0.4,
+    "limiter": "mc"
+  },
+  "runtime": {
+    "backend": "cuda",
+    "precision": "double",
+    "max_iterations": 150000,
+    "residual_tolerance": 1e-06
+  },
+  "output": {
+    "interval": 20
+  },
+  "convergence": {
+    "minimum_iterations": 5000,
+    "sampling_interval": 20,
+    "window_iterations": 2000,
+    "relative_residual_target": 0,
+    "observable_tolerance": 0.0005,
+    "mass_mismatch_tolerance": 0.001,
+    "station_spread_tolerance": 0.002
+  }
+}

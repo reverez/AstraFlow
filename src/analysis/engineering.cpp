@@ -73,6 +73,7 @@ nlohmann::json engineering(const Mesh &m, const std::vector<double> &state, Gas 
         {"mass_flow_spread", scale > 0 ? (*hi - *lo) / scale : 0},
         {"mass_conservation_error", scale > 0 ? std::abs(mdot - inlet) / scale : 0},
         {"ideal_gas_estimate", true}};
+    out["interior_inlet_exit_mass_estimate_mismatch"] = out["mass_conservation_error"];
     out["exit_axial_velocity"] =
         std::abs(mdot) > 1e-30 ? nlohmann::json(velocity / mdot) : nlohmann::json(nullptr);
     out["specific_impulse"] =

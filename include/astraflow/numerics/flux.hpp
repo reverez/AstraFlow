@@ -1,15 +1,20 @@
 #pragma once
 #include "astraflow/physics/state.hpp"
 namespace astraflow {
-enum class Limiter { Minmod, VanLeer, MC };
+enum class Limiter { Minmod, VanLeer, MC, VanAlbada, FirstOrderDiagnostic };
 template <class T> AF_HD T minmod(T a, T b) {
     return a * b <= 0 ? T(0) : (a > 0 ? smaller(a, b) : larger(a, b));
 }
 template <class T> AF_HD T limit(T a, T b, Limiter limiter) {
+    if (limiter == Limiter::FirstOrderDiagnostic)
+        return T(0);
     if (limiter == Limiter::Minmod)
         return minmod(a, b);
     if (limiter == Limiter::VanLeer)
         return a * b <= 0 ? T(0) : T(2) * a * b / (a + b);
+    // Smooth (differentiable for ab>0) symmetric van Albada slope; equals a when a==b.
+    if (limiter == Limiter::VanAlbada)
+        return a * b <= 0 ? T(0) : a * b * (a + b) / (a * a + b * b);
     return minmod(T(0.5) * (a + b), minmod(T(2) * a, T(2) * b));
 }
 template <class T> AF_HD State<T> physical_flux(State<T> w, Gas gas) {

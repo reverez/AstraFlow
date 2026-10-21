@@ -15,11 +15,19 @@ void keys(const nlohmann::json &j, std::initializer_list<const char *> allowed) 
     }
 }
 std::string limiter_name(Limiter l) {
-    return l == Limiter::MC ? "mc" : l == Limiter::Minmod ? "minmod" : "van_leer";
+    return l == Limiter::MC          ? "mc"
+           : l == Limiter::Minmod    ? "minmod"
+           : l == Limiter::VanAlbada ? "van_albada"
+                                     : "van_leer";
 }
 } // namespace
 void Config::validate() const {
     validate_settings(settings);
+    convergence.validate();
+    steady.validate();
+    if (steady.enabled && (end_time != 0 || settings.profile))
+        throw std::invalid_argument(
+            "Pseudo-time requires end_time=0 and physical stage profiling disabled");
     if ((problem == "rocket_nozzle" || problem == "isentropic_nozzle") &&
         settings.upper_wall_speed != 0)
         throw std::invalid_argument(
@@ -43,6 +51,11 @@ void Config::validate() const {
         throw std::invalid_argument("Invalid iteration settings or wall velocity");
     if (problem == "rocket_nozzle" && settings.gas.viscosity > 0 && !settings.no_slip)
         throw std::invalid_argument("Viscous rocket nozzle requires no-slip wall");
+    // The isothermal wall ghost state mirrors temperature about T_wall, so a wall colder than
+    // half the stagnation temperature can produce a negative ghost temperature.
+    if (settings.wall_temperature > 0 && 2 * settings.wall_temperature < settings.t0)
+        throw std::invalid_argument(
+            "Isothermal wall temperature must be at least half the stagnation temperature");
 }
 nlohmann::json Config::json() const {
     const auto &g = settings.gas;
@@ -53,6 +66,12 @@ nlohmann::json Config::json() const {
               {"gas_constant", g.gas_constant},
               {"prandtl", g.prandtl},
               {"viscosity", g.viscosity},
+              {"viscosity_model", g.viscosity_model == ViscosityModel::Constant     ? "constant"
+                                  : g.viscosity_model == ViscosityModel::Sutherland ? "sutherland"
+                                                                                    : "power_law"},
+              {"reference_temperature", g.reference_temperature},
+              {"sutherland_temperature", g.sutherland_temperature},
+              {"viscosity_exponent", g.viscosity_exponent},
               {"rho_floor", g.rho_floor},
               {"p_floor", g.p_floor},
               {"temperature_floor", g.temperature_floor}}},
@@ -77,17 +96,31 @@ nlohmann::json Config::json() const {
              {{"cfl", settings.cfl},
               {"limiter", limiter_name(settings.limiter)},
               {"profile", settings.profile}}},
+            {"steady_solver",
+             {{"enabled", steady.enabled},
+              {"local_time_step", steady.local_time_step},
+              {"cfl", steady.cfl}}},
             {"runtime",
              {{"backend", backend},
               {"precision", precision},
               {"max_iterations", max_iterations},
               {"end_time", end_time},
               {"residual_tolerance", residual_tolerance}}},
+            {"convergence",
+             {{"minimum_iterations", convergence.minimum_iterations},
+              {"sampling_interval", convergence.sampling_interval},
+              {"window_iterations", convergence.window_iterations},
+              {"relative_residual_target", convergence.relative_residual_target},
+              {"observable_tolerance", convergence.observable_tolerance},
+              {"mass_mismatch_tolerance", convergence.mass_mismatch_tolerance},
+              {"station_spread_tolerance", convergence.station_spread_tolerance},
+              {"mass_gate", convergence.mass_gate},
+              {"balance_interval", convergence.balance_interval}}},
             {"output", {{"directory", output.string()}, {"interval", output_interval}}}};
 }
 Config Config::parse(const nlohmann::json &j) {
     keys(j, {"problem", "gas", "geometry", "mesh", "boundary_conditions", "numerics", "runtime",
-             "output"});
+             "output", "convergence", "steady_solver"});
     Config c;
     c.problem = j.value("problem", c.problem);
     auto read = [&](const char *section, std::initializer_list<const char *> allowed) {
@@ -96,7 +129,8 @@ Config Config::parse(const nlohmann::json &j) {
         return v;
     };
     auto g = read("gas", {"gamma", "gas_constant", "prandtl", "viscosity", "rho_floor", "p_floor",
-                          "temperature_floor"});
+                          "temperature_floor", "viscosity_model", "reference_temperature",
+                          "sutherland_temperature", "viscosity_exponent"});
     auto &gas = c.settings.gas;
     gas.gamma = g.value("gamma", gas.gamma);
     gas.gas_constant = g.value("gas_constant", gas.gas_constant);
@@ -105,6 +139,18 @@ Config Config::parse(const nlohmann::json &j) {
     gas.rho_floor = g.value("rho_floor", gas.rho_floor);
     gas.p_floor = g.value("p_floor", gas.p_floor);
     gas.temperature_floor = g.value("temperature_floor", gas.temperature_floor);
+    auto model = g.value("viscosity_model", std::string("constant"));
+    if (model == "constant")
+        gas.viscosity_model = ViscosityModel::Constant;
+    else if (model == "sutherland")
+        gas.viscosity_model = ViscosityModel::Sutherland;
+    else if (model == "power_law")
+        gas.viscosity_model = ViscosityModel::PowerLaw;
+    else
+        throw std::invalid_argument("Unknown viscosity model");
+    gas.reference_temperature = g.value("reference_temperature", gas.reference_temperature);
+    gas.sutherland_temperature = g.value("sutherland_temperature", gas.sutherland_temperature);
+    gas.viscosity_exponent = g.value("viscosity_exponent", gas.viscosity_exponent);
     auto n =
         read("geometry", {"chamber_radius", "chamber_length", "throat_radius", "contraction_length",
                           "exit_radius", "expansion_length", "length", "height"});
@@ -141,8 +187,14 @@ Config Config::parse(const nlohmann::json &j) {
         c.settings.limiter = Limiter::Minmod;
     else if (limiter == "van_leer")
         c.settings.limiter = Limiter::VanLeer;
+    else if (limiter == "van_albada")
+        c.settings.limiter = Limiter::VanAlbada;
     else
         throw std::invalid_argument("Unknown limiter");
+    auto st = read("steady_solver", {"enabled", "local_time_step", "cfl"});
+    c.steady.enabled = st.value("enabled", false);
+    c.steady.local_time_step = st.value("local_time_step", true);
+    c.steady.cfl = st.value("cfl", 0.4);
     auto r = read("runtime",
                   {"backend", "precision", "max_iterations", "end_time", "residual_tolerance"});
     c.backend = r.value("backend", c.backend);
@@ -150,6 +202,20 @@ Config Config::parse(const nlohmann::json &j) {
     c.max_iterations = r.value("max_iterations", c.max_iterations);
     c.end_time = r.value("end_time", c.end_time);
     c.residual_tolerance = r.value("residual_tolerance", c.residual_tolerance);
+    auto cv = read("convergence",
+                   {"minimum_iterations", "sampling_interval", "window_iterations",
+                    "relative_residual_target", "observable_tolerance", "mass_mismatch_tolerance",
+                    "station_spread_tolerance", "mass_gate", "balance_interval"});
+    auto &cs = c.convergence;
+    cs.minimum_iterations = cv.value("minimum_iterations", cs.minimum_iterations);
+    cs.sampling_interval = cv.value("sampling_interval", cs.sampling_interval);
+    cs.window_iterations = cv.value("window_iterations", cs.window_iterations);
+    cs.relative_residual_target = cv.value("relative_residual_target", cs.relative_residual_target);
+    cs.observable_tolerance = cv.value("observable_tolerance", cs.observable_tolerance);
+    cs.mass_mismatch_tolerance = cv.value("mass_mismatch_tolerance", cs.mass_mismatch_tolerance);
+    cs.station_spread_tolerance = cv.value("station_spread_tolerance", cs.station_spread_tolerance);
+    cs.mass_gate = cv.value("mass_gate", cs.mass_gate);
+    cs.balance_interval = cv.value("balance_interval", cs.balance_interval);
     auto o = read("output", {"directory", "interval"});
     c.output = o.value("directory", std::string{});
     c.output_interval = o.value("interval", c.output_interval);

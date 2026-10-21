@@ -134,3 +134,71 @@ ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1 \
 ```
 
 The instrumented suite is substantially slower than Release because it checks the full refinement integrations. Nsight and compute-sanitizer were not installed; no GPU memory-sanitizer pass is claimed. CPU CI is configured; the local validation reported here does not claim a completed hosted GitHub Actions run.
+
+## V2 verification additions (2026-10-21)
+
+All bounds below were set before the corresponding test was first run.
+
+### Van Albada limiter
+
+| Check | Measured | Preset bound |
+|---|---:|---:|
+| Sod 400 cells, L1 density / velocity / pressure | 1.834e-3 / 3.326e-3 / 1.217e-3 | 0.006 / 0.008 / 0.005 |
+| Sod total mass drift | 2.44e-15 | 1e-12 |
+| Entropy wave observed L1 orders (20→40→80) | 1.611, 1.935 | > 1.5 |
+| Entropy wave finest L1 | 5.96e-4 | < 0.002 |
+
+For reference, MC gives 1.446e-3 / 2.546e-3 / 8.91e-4 and orders 1.811, 2.002: van Albada is
+measurably more diffusive on both tests, as expected for a limiter that lies between minmod and
+MC, and it is accepted as a production option on those unchanged gates.
+
+### Temperature-dependent viscosity
+
+Steady compressible Couette flow, 4 × 32 cells, U = 2, Tw = 1, mu_ref = 0.05 at T_ref = 1,
+Pr = 0.72, integrated to t = 20. The exact solution is T(u) = Tw + Pr u (U − u) / (2 cp) and
+y(u) = (1/tau) ∫ mu(T(s)) ds with tau from y(U) = H, evaluated by 20,000-panel Simpson
+quadrature in the test itself.
+
+| Model | mu(centre)/mu(wall) | Velocity L1 / U | Temperature L1 | Bounds |
+|---|---:|---:|---:|---|
+| Sutherland, S = 0.5 | 1.0839 | 2.26e-5 | 1.18e-4 | 2e-3 / 1e-3 |
+| Power law, n = 1 | 1.1029 | 2.77e-5 | 1.22e-4 | 2e-3 / 1e-3 |
+
+CPU/CUDA FP64 parity on an isothermal-wall Sutherland nozzle after 100 steps: maximum
+conservative difference 3.55e-15 (bound 1e-10). The constant model is checked to return the
+reference viscosity exactly, so constant-viscosity runs are arithmetically unchanged.
+
+### Wall quantities
+
+- Couette 4 × 48 at t = 20: traction ±mu U/H on the two walls within 2e-3 relative; conductive
+  heat flux into each wall equals mu U² / (2H) within 1e-3 (measured 0.0250006 against 0.025):
+  discrete energy conservation forces the steady wall flux to balance half the dissipation. Net
+  axial force on the two walls is zero to 1e-9.
+- Adiabatic 48 × 12 nozzle after 500 steps: wall heat flux zero to 1e-12 on every face, viscous
+  axial force on the wall positive (the wall retards the flow).
+- Isothermal 32 × 8 nozzle (Tw = 0.5 T0): the integrated wall heat transfer rate equals the
+  wall viscous/thermal energy flux of the four-equation balance to 1e-10 (0.21630354 nondimensional
+  per full revolution).
+
+### Isothermal wall impermeability
+
+At a converged (residual 1e-14) cooled-wall nozzle state the first V2 implementation showed a
+wall convective mass flux of 3.42e-4 against an inlet flux of 0.3426 (nondimensional, per
+radian): the cold-wall ghost density made the HLLC wall problem asymmetric. V2.0 uses the interior
+density in the convective ghost state. Test: isothermal 32 × 8 nozzle after 200 steps, wall
+convective mass and energy fluxes of the four-equation balance are zero to 1e-15 while the wall
+viscous/thermal energy flux is nonzero. Adiabatic cases are arithmetically unchanged (the
+2,000-iteration FP64 rocket field remains bitwise identical to the V1.1 executable's).
+
+### Backend and threading invariants
+
+- CPU boundary mass fluxes in pseudo-time mode equal the host balance at the completed iterate to
+  1e-14; CUDA equals CPU to 1e-12 in both physical and pseudo modes.
+- CPU fields, residual statistics and boundary sums are bitwise identical between one and eight
+  OpenMP threads on a 64 × 40 viscous nozzle after 30 steps.
+- Config round trip covers the new limiter, transport-model and convergence keys; state export
+  and import reproduce a five-step simulation to 1e-13.
+
+Release suites after these additions: CPU 8/8 CTest entries (37 Catch2 cases), CUDA 10/10
+(including 11 analysis unit tests under the project venv). The 2,000-iteration FP64 rocket run
+of `scientific_closure.json` exports a final field bitwise identical to the V1.1 executable's.

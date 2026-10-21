@@ -150,11 +150,11 @@ void Controller::work(std::stop_token stop) {
                     running_ = false;
                 running = running_;
             }
-            RunState state =
-                sim->finished()
-                    ? (sim->termination() == "converged" ? RunState::Converged : RunState::Finished)
-                : running ? RunState::Running
-                          : RunState::Paused;
+            RunState state = sim->finished()
+                                 ? (sim->termination() == "steady_converged" ? RunState::Converged
+                                                                             : RunState::Finished)
+                             : running ? RunState::Running
+                                       : RunState::Paused;
             if (!running || sim->stats().iterations % 10 == 0)
                 publish(*sim, mesh, history, state);
         } catch (const std::exception &e) {

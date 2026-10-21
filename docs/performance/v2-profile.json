@@ -1,0 +1,49 @@
+{
+  "astraflow_version": "2.0.0",
+  "cpu_threads": 8,
+  "device": "NVIDIA GeForce RTX 5070 Laptop GPU\nCompute capability: 12.0\nGlobal memory (bytes): 8518041600\nCUDA runtime: 12080\nExecuted kernel architecture: sm_120",
+  "iterations": 30,
+  "omp_proc_bind": "true",
+  "omp_wait_policy": "passive",
+  "precision": "FP32 CPU and GPU",
+  "profile_enabled": true,
+  "results": [
+    {
+      "cells": 65536,
+      "cpu_iteration_ms": 24.129194566666666,
+      "cpu_parallel_iteration_ms": 7.850714300000001,
+      "cpu_parallel_speedup": 3.0735030781424135,
+      "cpu_threads": 8,
+      "cpu_wall_ms": 24.1313007,
+      "device_bytes": 25498943,
+      "gpu_iteration_ms": 0.4202122668425242,
+      "gpu_wall_ms": 0.49158786666666665,
+      "iterations_per_second": 2379.7496620315296,
+      "nr": 128,
+      "nx": 512,
+      "parity_L1": 2.1844658990646228e-07,
+      "parity_L2": 5.590384849420842e-07,
+      "parity_max": 5.9604644775390625e-06,
+      "speedup": 57.421442615118025,
+      "stage_ms": [
+        0.07238720022141934,
+        0.013816533423960211,
+        0.05906986650079489,
+        0.09639040033022563,
+        0.05279040044794481,
+        0.020120533400525654,
+        0.05321706670025983
+      ]
+    }
+  ],
+  "stage_names": [
+    "primitive_conversion",
+    "CFL_reduction",
+    "gradients",
+    "convective_viscous_faces",
+    "residual_assembly",
+    "RK_update",
+    "diagnostic_reductions_and_single_transfer"
+  ],
+  "warmup_iterations": 20
+}

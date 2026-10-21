@@ -1,8 +1,11 @@
 #include "astraflow/core/simulation.hpp"
+#include "astraflow/analysis/balance.hpp"
+#include "astraflow/analysis/engineering.hpp"
 #include <algorithm>
 #include <stdexcept>
 namespace astraflow {
-Simulation::Simulation(Config config) : config_(std::move(config)) {
+Simulation::Simulation(Config config, const std::vector<State<double>> &physical_initial)
+    : config_(std::move(config)), monitor_(config_.convergence, config_.residual_tolerance) {
     config_.validate();
     auto s = config_.settings;
     bool nozzle = config_.problem == "rocket_nozzle" || config_.problem == "isentropic_nozzle";
@@ -38,7 +41,9 @@ Simulation::Simulation(Config config) : config_(std::move(config)) {
         c.radial_source *= L;
     }
     std::vector<State<double>> w;
-    if (nozzle)
+    if (!physical_initial.empty())
+        w = physical_initial;
+    else if (nozzle)
         w = nozzle_initial_state(physical_mesh_, config_.geometry, s);
     else
         for (auto c : physical_mesh_.cells) {
@@ -57,6 +62,8 @@ Simulation::Simulation(Config config) : config_(std::move(config)) {
     }
     s.gas.gas_constant = 1;
     s.gas.viscosity /= scales_.density * scales_.velocity * L;
+    s.gas.reference_temperature /= scales_.temperature;
+    s.gas.sutherland_temperature /= scales_.temperature;
     s.gas.rho_floor /= scales_.density;
     s.gas.p_floor /= scales_.pressure;
     s.gas.temperature_floor /= scales_.temperature;
@@ -65,11 +72,13 @@ Simulation::Simulation(Config config) : config_(std::move(config)) {
     s.back_pressure /= scales_.pressure;
     s.wall_temperature /= scales_.temperature;
     s.upper_wall_speed /= scales_.velocity;
+    normalized_mesh_ = m;
+    normalized_settings_ = s;
     if (config_.backend == "cpu")
-        solver_ = make_cpu_solver(m, s, config_.precision == "double");
+        solver_ = make_cpu_solver(m, s, config_.precision == "double", config_.steady);
 #ifdef ASTRAFLOW_HAS_CUDA
     else
-        solver_ = make_cuda_solver(m, s, config_.precision == "double");
+        solver_ = make_cuda_solver(m, s, config_.precision == "double", config_.steady);
 #else
     else
         throw std::runtime_error("CUDA requested but this build has CUDA disabled");
@@ -80,19 +89,53 @@ void Simulation::step() {
     if (finished())
         return;
     double cap = config_.end_time > 0 ? (config_.end_time - stats().time) / scales_.time : 1e100;
-    solver_->step(cap);
+    try {
+        solver_->step(cap);
+        const auto &s = solver_->stats();
+        monitor_.initial(s.residual);
+        if (s.iterations == 1 || s.iterations % config_.convergence.sampling_interval == 0) {
+            engineering_ = engineering(physical_mesh_, state(), config_.settings.gas,
+                                       config_.settings.back_pressure);
+            // Solver-side numerical boundary fluxes share the residual's sampling stage, so no
+            // host re-evaluation of the spatial operator is needed every sample.
+            engineering_["numerical_boundary_mass_flux_mismatch"] =
+                boundary_mass_mismatch(s.boundary_mass_flux);
+            engineering_["numerical_boundary_mass_flux_nondimensional"] = s.boundary_mass_flux;
+            int interval = config_.convergence.balance_interval;
+            if (interval > 0 && s.iterations % interval == 0) {
+                balance_ = balance();
+                balance_iteration_ = s.iterations;
+            }
+            sampled_iteration_ = s.iterations;
+            monitor_.sample(s.iterations, s.residual, engineering_);
+        }
+    } catch (const std::exception &e) {
+        failure_ = e.what();
+        throw;
+    }
 }
 bool Simulation::finished() const { return termination() != "running"; }
 std::string Simulation::termination() const {
     const auto &s = solver_->stats();
-    if (s.iterations > 0 && config_.residual_tolerance > 0 &&
-        *std::max_element(s.residual.begin(), s.residual.end()) < config_.residual_tolerance)
-        return "converged";
+    if (!failure_.empty())
+        return "invalid_state";
+    if (stopped_)
+        return "user_stop";
+    if (monitor_.converged())
+        return "steady_converged";
     if (s.iterations >= config_.max_iterations)
         return "iteration_limit";
     if (config_.end_time > 0 && s.time * scales_.time >= config_.end_time * (1 - 1e-13))
         return "time_limit";
     return "running";
+}
+nlohmann::json Simulation::convergence_report() const {
+    auto report = monitor_.report(solver_->stats().residual);
+    report["converged"] = termination() == "steady_converged";
+    report["termination_reason"] = termination();
+    if (!failure_.empty())
+        report["failure"] = failure_;
+    return report;
 }
 std::vector<double> Simulation::state() const {
     auto u = solver_->state();
@@ -103,6 +146,16 @@ std::vector<double> Simulation::state() const {
         for (std::size_t i = 0; i < n; ++i)
             u[k * n + i] *= factors[k];
     return u;
+}
+nlohmann::json Simulation::balance() const {
+    auto b = finite_volume_balance(normalized_mesh_, solver_->state(), normalized_settings_).global;
+    const auto &flux = b.at("boundary_fluxes");
+    double inlet = -flux.at("inlet").at("outward_total")[0].get<double>();
+    double outlet = flux.at("outlet").at("outward_total")[0].get<double>();
+    b["numerical_boundary_mass_flux_mismatch"] =
+        std::abs(outlet - inlet) / std::max({std::abs(inlet), std::abs(outlet), 1e-30});
+    b["units"] = "nondimensional; per radian for axisymmetric geometry";
+    return b;
 }
 StepStats Simulation::stats() const {
     auto s = solver_->stats();

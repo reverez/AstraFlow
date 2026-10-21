@@ -1,3 +1,5 @@
+> Historical record of V1.0/V1.1 acceptance. The live status is [STATUS.md](STATUS.md).
+
 # AstraFlow Phase 1 Status
 
 ## Environment
@@ -19,7 +21,7 @@ See [environment.md](environment.md). Project-local CUDA 12.8.93 installed; SM12
 
 ## Current blocker
 
-None. The user configured origin as git@github.com:reverez/AstraFlow.git; SSH fetch succeeds. Remote README commits were merged without rewriting history, retaining the user's structure and authorship text.
+Phase 1 has no blocker. V1.1 refined-grid steady closure remains unresolved; see the V1.1 section below. The user configured origin as git@github.com:reverez/AstraFlow.git; SSH fetch succeeds. Remote README commits were merged without rewriting history, retaining the user's structure and authorship text.
 
 ## Latest validation
 
@@ -36,3 +38,31 @@ M0–M9 gates passed. Development continued at the user-relocated `/home/arnav/d
 ## Deferred
 
 Only specified Phase 2 features: plume, chemistry, turbulence, advanced thermodynamics, CUDA/OpenGL interop and advanced nozzle optimisation.
+
+## V1.1 scientific closure
+
+- [x] C0: annotated v1.0.0 preserves ecd0337; development on v1.1-scientific-closure; main unchanged; baseline Release suite passes.
+- [x] C1: convergence monitor, full engineering window, explicit termination/output and dedicated FP64 configuration; CPU 6/6, CUDA 8/8, legacy 3,000-step iteration-limit check and analysis unit tests pass.
+- [x] C2: 128x32 CUDA FP64 steady closure at 82,480 iterations, 64.7 s wall; all residual/window/conservation gates pass, zero fallbacks.
+- [ ] C3: blocked scientifically. CPU FP64 cross-check passes at 82,480 iterations (max field difference 1.20e-14). 256x64 reaches 250,000 steps without residual/mass-estimate closure; finer grids were not started.
+- [ ] C4: analysis mathematics tests pass; numerical Richardson/GCI is not valid with only one accepted grid.
+- [ ] C5: diagnostic closure report and four eligible baseline figures plus rejected-grid residual figure complete; grid-convergence figure withheld because the prerequisite failed.
+- [ ] C6: final software pass is green (CPU 7/7, CUDA 9/9, analysis tests and output integrity); scientific acceptance remains false because C3 did not pass. Review branch published without merging main.
+
+Scientific acceptance is unresolved. CFL sensitivity and an additional 50,000-step diagnostic continuation did not resolve the medium-grid residual. Existing cell-based mass estimate differs from the numerical boundary-flux balance; neither criterion was changed. Details and exact criteria are in [rocket_scientific_closure.md](verification/rocket_scientific_closure.md).
+
+### V1.1-C2b residual investigation
+
+- [x] True four-equation numerical boundary/global balances, signed local convective/transport/source decomposition, fixed-cell primitive/gradient/limiter traces and targeted regressions.
+- [x] Conservative 128×32-to-256×64 initialization: maximum parent integral error 5.00e-16, no positivity limiting. Fresh CUDA FP64 production run ends at 250,000 steps with energy residual 4.57e-5 and cell mass mismatch 0.00117821; not converged.
+- [x] Equal-time 100.397418 µs MC, Van Leer and first-order diagnostics from the same saved medium field; all diagnostic only. Numerical balance assembly error <=6.88e-15; signed near-axis residual cycles and neighboring limiter switches measured.
+- [x] Evidence, three figures and full-cadence focus traces recorded in [residual_closure_c2b.md](verification/residual_closure_c2b.md). An implicit pseudo-transient proposal preserves R(U)=0; no acceleration implemented.
+- [ ] Scientific acceptance remains unresolved: no accepted medium/fine pair or grid uncertainty. Accepted 128×32 and original 250k cold-medium cases were not rerun; 512×128 was not started. Production mathematics and all convergence gates remain unchanged.
+
+### V1.1-C2c local pseudo-time acceleration
+
+- [x] Optional CPU/CUDA local pseudo-time RK2 mode implemented using the unchanged spatial residual; physical SSP-RK2 remains the default, with explicit physical/pseudo metadata and separate conservation estimates.
+- [x] CPU 7/7 and CUDA-enabled 9/9 full CTest pass; 11 project Python analysis tests pass.
+- [x] Required 128×32 CUDA FP64 original-initializer experiment reaches the unchanged convergence monitor at 34,260 iterations / 44.501661 s versus the saved 82,480 / 64.689289 s: observed wall-time ratio 1.45364×.
+- [ ] **Coarse root-equivalence fails:** normalized conservative-field Linf=2.79363e-6 exceeds the preset 1e-8. Primary engineering differences <=4.76407e-9, zero fallbacks and numerical boundary mass mismatch 2.66069e-9 pass. No bound was changed.
+- [ ] Medium advancement blocked by that failed gate. No C2c 256×64 or 512×128 run was started. See [steady_acceleration_c2c.md](verification/steady_acceleration_c2c.md) for the distinction between convergence-monitor termination and validated field equivalence.

@@ -1,6 +1,6 @@
 # Development environment
 
-Preflight performed once on 2026-09-09 at `/home/arnav/dev/projects/portfolio`; canonical project created at `/home/arnav/dev/projects/AstraFlow`. No existing project data was present.
+Preflight performed once on 2026-09-09 at `/home/arnav/Arnavs Folder/dev/projects/portfolio`; canonical project created at `/home/arnav/Arnavs Folder/dev/projects/AstraFlow`. No existing project data was present.
 
 - WSL2 kernel: 6.18.33.2-microsoft-standard-WSL2, x86_64.
 - Ubuntu 24.04.4 LTS.
@@ -17,8 +17,25 @@ Sources: [NVIDIA CUDA 12.8.1 manifest](https://developer.download.nvidia.com/com
 
 Milestone 0 runtime probe: NVIDIA GeForce RTX 5070 Laptop GPU; compute capability 12.0; global memory 8,518,041,600 bytes; CUDA runtime 12080; executed kernel architecture sm_120. NVCC 12.8.93. CMake 3.28.3 accepts architecture 120 explicitly on the target. Local gh 2.65.0 reports no authenticated hosts.
 
-Relocation update: the user moved the repository to `/home/arnav/dev/projects/portfolio/AstraFlow`. Continued development there on 2026-09-09. The old absolute-path CMake trees are preserved as `build-before-move` and `build-cpu-before-move`; fresh build trees reuse their downloaded dependency sources. No project data or user commits were removed.
+Relocation update: the user moved the repository to `/home/arnav/Arnavs Folder/dev/projects/portfolio/AstraFlow`. Continued development there on 2026-09-09. The old absolute-path CMake trees are preserved as `build-before-move` and `build-cpu-before-move`; fresh build trees reuse their downloaded dependency sources. No project data or user commits were removed.
 
 Benchmark CPU: Intel Core Ultra 9 285H, 16 logical CPUs visible to WSL; CPU reference solver uses one thread. A project `.venv` uses WSL Python 3.12.3; auxiliary scripts need no installed packages.
 
 Final remote update: origin is `git@github.com:reverez/AstraFlow.git`; SSH fetch succeeds. Four user README commits were discovered and merged normally before final publication. The earlier unauthenticated gh status did not prevent SSH Git access.
+
+## Work-root migration — 2026-09-12
+
+The canonical project is now `~/Arnavs Folder/dev/projects/portfolio/AstraFlow`. Quote this path in shell commands. The previous active build trees are preserved as `build-before-work-root-move`, `build-cpu-before-work-root-move` and `build-sanitize-before-work-root-move`; current build trees were freshly configured offline.
+
+Keep `build-before-move` and `build-cpu-before-move`: the current builds explicitly reuse their dependency sources. Do not clean these as ordinary build caches.
+
+CMake 3.28's CUDA implicit library search parsing truncated the spaced toolkit path. The current CUDA build supplies a quoted `-L` library path via `CMAKE_EXE_LINKER_FLAGS`. The local executable `.toolchains/configure-wsl.sh` reproduces the offline CUDA/GUI configuration with this option. From the project root:
+
+```bash
+./.toolchains/configure-wsl.sh
+cmake --build build -j 4
+ctest --test-dir build --output-on-failure
+./build/astraflow_cli --device-info
+```
+
+The local toolkit is retained; no system CUDA installation or driver changes were made. Python entry points and activation paths were repaired in place; installed packages were preserved.
