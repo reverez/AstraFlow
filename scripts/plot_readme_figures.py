@@ -7,6 +7,7 @@ Subcommands:
   scaling BENCH_JSON     CPU single-thread, CPU multi-thread and CUDA time per iteration
   wall RUN_DIR           wall shear and heat-flux distributions from wall.csv
   sweep SWEEP_JSON       2D thrust against the quasi-1D isentropic estimate
+  profile PROFILE_JSON   CUDA stage intervals of one iteration (event-instrumented run)
 Every figure states grid, backend/precision and termination where applicable.
 """
 import argparse
@@ -247,15 +248,40 @@ def sweep(path, out):
     plt.close(fig)
 
 
+def profile(path, out):
+    data = json.loads(Path(path).read_text())
+    row = data['results'][0]
+    names = data['stage_names']
+    labels = {'primitive_conversion': 'Primitive conversion + CFL bound', 'CFL_reduction': 'Timestep reduction (device)',
+              'gradients': 'MUSCL slopes + transport gradients', 'convective_viscous_faces': 'HLLC + viscous face fluxes',
+              'residual_assembly': 'Residual assembly + axisymmetric source', 'RK_update': 'SSP-RK2 updates',
+              'diagnostic_reductions_and_single_transfer': 'Residual/boundary reductions + one transfer'}
+    values = row['stage_ms']
+    fig, ax = plt.subplots(figsize=(8.5, 3.8))
+    y = list(range(len(names)))[::-1]
+    ax.barh(y, values, color=BLUE, height=0.55)
+    for yi, v in zip(y, values):
+        ax.annotate(f'{v * 1000:.0f} µs', (v, yi), xytext=(5, 0), textcoords='offset points', va='center', fontsize=8, color=INK2)
+    ax.set_yticks(y)
+    ax.set_yticklabels([labels.get(n, n) for n in names])
+    ax.set_xlabel('Mean interval per iteration [ms], event-instrumented (adds overhead)')
+    ax.set_title(f'CUDA stage intervals, {row["nx"]} × {row["nr"]} viscous nozzle, FP32, {data["iterations"]} measured iterations\n'
+                 f'(uninstrumented step {row["gpu_iteration_ms"]:.3f} ms; the event markers add overhead)', loc='left', fontsize=9, color=INK2)
+    ax.grid(axis='y', visible=False)
+    ax.set_xlim(0, max(values) * 1.3)
+    fig.savefig(out / 'cuda-stage-profile.png')
+    plt.close(fig)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('kind', choices=('sod', 'field', 'scaling', 'wall', 'sweep'))
+    parser.add_argument('kind', choices=('sod', 'field', 'scaling', 'wall', 'sweep', 'profile'))
     parser.add_argument('source', type=Path)
     parser.add_argument('--output', type=Path, default=Path(__file__).resolve().parents[1] / 'docs/figures')
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     style()
-    result = {'sod': sod, 'field': field, 'scaling': scaling, 'wall': wall, 'sweep': sweep}[args.kind](args.source, args.output)
+    result = {'sod': sod, 'field': field, 'scaling': scaling, 'wall': wall, 'sweep': sweep, 'profile': profile}[args.kind](args.source, args.output)
     if result:
         print(json.dumps(result, indent=2))
     print(f'Wrote {args.kind} figure(s) to {args.output}')

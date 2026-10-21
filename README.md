@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/banner.svg" alt="AstraFlow — GPU-accelerated axisymmetric compressible CFD for rocket nozzle flows" width="100%">
+  <img src="docs/assets/banner.svg" alt="AstraFlow: GPU-accelerated axisymmetric compressible CFD for rocket nozzle flows" width="100%">
 </p>
 
 <p align="center">
@@ -10,16 +10,65 @@
   <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-3987e5"></a>
 </p>
 
-> **AstraFlow** is a 2D axisymmetric compressible Euler/Navier–Stokes solver written from the governing equations up in **C++20 and NVIDIA CUDA**, with a deterministic CPU reference backend, an analytical verification suite, pre-registered convergence studies, an engineering analysis pipeline, reproducible run artefacts and an interactive GUI. It targets an NVIDIA GeForce RTX 5070 Laptop GPU (Blackwell, compute capability 12.0, `sm_120`).
+<p align="center">
+  <b>A rocket-nozzle flow solver built from the governing equations up, verified against exact solutions, and run on the GPU.</b><br>
+  C++20 · CUDA · deterministic CPU reference · pre-registered convergence studies · reproducible run artefacts · interactive GUI
+</p>
 
-This is an ongoing research project in verified scientific computing. Every number in this document is a measured result from a preserved run; nothing is estimated or redrawn, and the limits of each claim are stated next to it.
+---
+
+## Why this project exists
+
+Computational fluid dynamics is usually consumed through large packages whose internals stay invisible. AstraFlow takes the opposite route: **every ingredient of a compressible Navier–Stokes solver is written, tested and measured here**, from the HLLC Riemann solver and the axisymmetric source terms to the CUDA kernels and the convergence gates. The question the project answers is not "can a GPU run CFD" but **"how do you know a flow solver is right, and how fast can it be made without changing a single answer?"**
+
+Three ideas run through the codebase:
+
+1. **Verification before performance.** A result is accepted only when it matches an analytical solution, conserves what it must conserve, converges at the expected order, or agrees between CPU and GPU to round-off. Bounds are written down before a test runs and are never loosened afterwards.
+2. **One operator, two backends.** The finite-volume numerics are header-only templates that both the CPU and the CUDA backend call. CPU/GPU agreement at 1e-14 is therefore a statement about the implementation, and every optimisation is checked for bitwise-identical fields.
+3. **Studies are pre-registered.** Grid-convergence protocols, their budgets and their acceptance criteria are committed before a run starts. When a budget turns out wrong, a new protocol is registered rather than the old one edited. The repository carries the full record, including the studies that did not close.
+
+## What it does
+
+<p align="center">
+  <img src="docs/screenshots/gui-mach.png" alt="Interactive interface: Mach-number field, residual history and engineering results" width="96%"><br>
+  <sub>The interactive application on WSLg, captured from its framebuffer after 2,600 CUDA FP32 iterations of the rocket example: Mach field with labelled radial magnification, live residual history, engineering results and CUDA telemetry. The GUI drives the same solver as the CLI through a worker thread that publishes immutable snapshots.</sub>
+</p>
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/gui-pressure.png" alt="Pressure field in the GUI"><br><sub>Pressure field of the same run.</sub></td>
+<td width="50%"><img src="docs/screenshots/gui-temperature-cooled.png" alt="Temperature field with a cooled isothermal wall"><br><sub>Temperature with a 1500 K isothermal wall and Sutherland viscosity, integrated in local pseudo-time (20,050 iterations shown) towards the steady convergence monitor.</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/gui-vorticity.png" alt="Vorticity field of the viscous nozzle"><br><sub>Vorticity of the viscous no-slip case in FP64: the wall boundary layer is the only source of rotation in this laminar flow.</sub></td>
+<td width="50%"><img src="docs/figures/cuda-stage-profile.png" alt="CUDA stage intervals of one iteration"><br><sub>Where a CUDA iteration spends its time at 512 × 128, from the event-instrumented build.</sub></td>
+</tr>
+</table>
+
+<p align="center">
+  <img src="docs/assets/pipeline.svg" alt="One timestep of the solver pipeline" width="100%">
+</p>
+
+AstraFlow solves the 2D axisymmetric compressible Euler/Navier–Stokes equations for a single-species calorically perfect gas in a converging–diverging nozzle. It reconstructs the flow with MUSCL and a choice of limiters, resolves the intercell fluxes with HLLC, integrates in time with SSP-RK2 or local pseudo-time, monitors steady convergence with pre-registered gates, and reports mass flow, thrust, specific impulse, exit state, wall shear and wall heat flux with a full four-equation conservation balance. Every run leaves a self-describing directory (configuration, histories, balances, VTK fields) that the analysis scripts read back to produce the figures in this document.
+
+## Who it is for
+
+| Use | What AstraFlow gives you |
+|---|---|
+| **Learning compressible CFD** | A complete, readable solver (about 7,000 lines) where each numerical ingredient is a short template function with a test that states what it must satisfy |
+| **Verification methodology** | A worked example of analytical cases, conservation identities, convergence-order tests, CPU/GPU parity, preset tolerances and pre-registered grid studies, with the records of studies that failed as well as those that passed |
+| **GPU scientific computing** | A CUDA backend that reaches 64–88× over a single CPU thread while staying bitwise identical to the reference, with measured, back-to-back before/after optimisation data |
+| **Nozzle design studies** | Steady thrust, Isp, exit state, wall loads and wall heat flux for a parameterised nozzle, with an expansion-ratio sweep tool and a quasi-1D comparison |
+| **Research scaffolding** | Strict configuration, immutable run artefacts, checksum-verified study runners and stdlib-only validators that make a numerical result reproducible by someone else |
+
+It is not a certified design tool: the physics is laminar, single-species and ideal-gas, there is no plume, chemistry or turbulence, and the fine-grid study is still open. Those limits are stated wherever a number appears.
 
 ---
 
 ## Contents
 
 1. [Status](#status)
-2. [Preview](#preview)
+2. [Results at a glance](#results-at-a-glance)
 3. [Objectives and workflow](#objectives-and-workflow)
 4. [Physical model](#physical-model)
 5. [Numerical method](#numerical-method)
@@ -41,14 +90,12 @@ This is an ongoing research project in verified scientific computing. Every numb
 |---|---|---|
 | **V1.0** (tag `v1.0.0`) | Milestones M0–M9: CPU and CUDA Euler and axisymmetric Navier–Stokes solvers, analytical verification, engineering analysis, CLI and GUI, CUDA profiling, final acceptance | Complete |
 | **V1.1** | Scientific closure of the rocket case with the MC limiter: steady convergence monitor, C2b residual investigation, C2c local pseudo-time | Complete as a diagnostic record; medium-grid closure **not** achieved with MC |
-| **V1.2** | Pre-registered re-study with the smooth van Albada limiter and the numerical boundary mass gate, three-grid Richardson/GCI, pseudo-time root study | Partially accepted: coarse and medium grids closed, pseudo-time root study passed; the fine grid plateaued at a 5e-6 residual under the pre-registered V1.4 budget and is not accepted |
-| **V2.0** | Solver optimisation (one host transfer per CUDA step, solver-side boundary fluxes, OpenMP CPU backend), Sutherland/power-law transport, wall shear and heat-flux analysis, state export/import, nozzle sweep tooling, this document | Complete; see [docs/STATUS.md](docs/STATUS.md) |
+| **V1.2–V1.4** | Pre-registered re-study with the smooth van Albada limiter and the numerical boundary mass gate, continuation budgets derived from measured decay rates, pseudo-time root study | Partially accepted: coarse and medium grids closed, pseudo-time root study passed; the fine grid plateaued at a 5e-6 residual and is not accepted |
+| **V2.0** (tag `v2.0.0`) | Solver optimisation (one host transfer per CUDA step, solver-side boundary fluxes, OpenMP CPU backend), Sutherland/power-law transport, wall shear and heat-flux analysis, impermeable isothermal walls, state export/import, nozzle sweep tooling, this document | Complete; see [docs/STATUS.md](docs/STATUS.md) |
 
-Release suites at V2.0: CPU 8/8 CTest entries (37 Catch2 cases), CUDA 10/10, plus 11 Python analysis tests. The V2 executable reproduces the V1.1 executable's 2,000-iteration FP64 rocket field **bitwise**.
+Release suites at V2.0: CPU 8/8 CTest entries (38 Catch2 cases), CUDA 10/10, plus 11 Python analysis tests. The V2 executable reproduces the V1.1 executable's 2,000-iteration FP64 rocket field **bitwise**.
 
----
-
-## Preview
+## Results at a glance
 
 <p align="center">
   <img src="docs/figures/nozzle-mach.png" alt="Mach-number field of the steady rocket nozzle" width="96%">
@@ -71,10 +118,15 @@ Release suites at V2.0: CPU 8/8 CTest entries (37 Catch2 cases), CUDA 10/10, plu
 
 <sub>Top: Mach and pressure fields of the accepted 128 × 32 steady state. Bottom left: Sod shock tube against an independent exact Riemann solution, and CPU versus CUDA time per iteration. Bottom right: wall shear and conductive heat flux along a 1500 K isothermal nozzle wall with Sutherland viscosity (steady in 27,640 pseudo-time iterations; 3.30 kW leaves through the wall, which closes the inlet/outlet energy budget of the four-equation balance to 1e-5 relative, peak heat flux 0.96 MW/m², viscous drag 3.69 N), and a six-case expansion sweep where the 2D viscous thrust sits 1.5–1.6% below inviscid quasi-1D theory with mass flow within 0.53%.</sub>
 
-<p align="center">
-  <img src="docs/screenshots/astraflow.png" alt="AstraFlow interactive interface on WSLg" width="96%"><br>
-  <sub>Actual framebuffer capture of the interactive application: nozzle flow, live residual history, engineering results and CUDA telemetry. Radial display magnification is labelled and does not modify the geometry.</sub>
-</p>
+| Headline | Value |
+|---|---|
+| Sod shock tube L1 errors at 400 cells (ρ, u, p) | 1.4e-3, 2.5e-3, 8.9e-4 against the exact solution |
+| Observed order on a smooth entropy wave | 1.81 → 2.00 (MC), 1.61 → 1.94 (van Albada) |
+| CPU/CUDA FP64 agreement after 49,480 steady iterations | 1.3e-14 maximum field difference |
+| Rocket grids closed to a 1e-6 residual on all four equations | 128 × 32 (49,480 it.) and 256 × 64 (760,760 it.) |
+| Coarse → medium change in thrust / mass flow | 0.44% / 0.50% |
+| CUDA time per iteration, 512 × 128, FP32 | 0.34 ms (88× one CPU thread) |
+| Cooled-wall energy budget closure | 1e-5 relative |
 
 ---
 

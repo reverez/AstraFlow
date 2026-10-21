@@ -4,6 +4,7 @@
 #include <GLFW/glfw3.h>
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <fstream>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -151,24 +152,43 @@ int main(int argc, char **argv) {
     try {
         std::filesystem::path config_path = "examples/rocket_nozzle/config.json", capture_path;
         bool smoke = false;
-        int frame_limit = 0;
+        int frame_limit = 0, capture_after = 0, requested_field = int(Field::Mach);
         for (int i = 1; i < argc; ++i) {
             std::string a = argv[i];
             if (a == "--smoke-test") {
                 smoke = true;
                 frame_limit = 240;
             } else if (a == "--help") {
-                std::cout
-                    << "AstraFlow " << version()
-                    << "\nastraflow_gui [--config FILE] [--smoke-test] [--capture FILE.ppm]\n";
+                std::cout << "AstraFlow " << version()
+                          << "\nastraflow_gui [--config FILE] [--smoke-test] [--capture FILE.ppm]"
+                             "\n  [--capture-after N]  run until N iterations, capture, exit"
+                             "\n  [--field NAME]       initial field (pressure, density, "
+                             "temperature, mach, axial, radial, speed, energy, vorticity)\n";
                 return 0;
             } else if (i + 1 < argc && a == "--config")
                 config_path = argv[++i];
             else if (i + 1 < argc && a == "--capture")
                 capture_path = argv[++i];
-            else
+            else if (i + 1 < argc && a == "--capture-after")
+                capture_after = std::stoi(argv[++i]);
+            else if (i + 1 < argc && a == "--field") {
+                std::string name = argv[++i];
+                requested_field = -1;
+                for (int f = 0; f < 9; ++f) {
+                    std::string full = field_name(Field(f));
+                    std::transform(full.begin(), full.end(), full.begin(), ::tolower);
+                    if (full.rfind(name, 0) == 0 || (name == "mach" && f == int(Field::Mach)) ||
+                        (name == "speed" && f == int(Field::Speed)) ||
+                        (name == "energy" && f == int(Field::TotalEnergy)))
+                        requested_field = f;
+                }
+                if (requested_field < 0)
+                    throw std::invalid_argument("Unknown field name: " + name);
+            } else
                 throw std::invalid_argument("Unknown or incomplete GUI option");
         }
+        if (capture_after > 0 && (smoke || capture_path.empty()))
+            throw std::invalid_argument("--capture-after needs --capture and no --smoke-test");
         Config active = Config::read(config_path);
         if (smoke) {
             // Prevent a fast GPU from reaching a case limit before the scripted pause/step checks.
@@ -206,7 +226,7 @@ int main(int argc, char **argv) {
         gui_started = true;
         Controller controller(active);
         ViewState view;
-        int selected = int(Field::Mach), previous_field = -1;
+        int selected = requested_field, previous_field = -1;
         std::shared_ptr<const Snapshot> previous;
         std::vector<double> values, hx;
         std::array<std::vector<double>, 4> hy;
@@ -226,6 +246,18 @@ int main(int argc, char **argv) {
                 selected = (frame / 18) % 9;
             else if (smoke)
                 selected = int(Field::Mach);
+            // Scripted capture: start the solver, wait for the requested iteration count, then
+            // render two more frames so the field and plots reflect that snapshot.
+            if (capture_after > 0 && frame == 5)
+                controller.run();
+            if (capture_after > 0 && frame_limit == 0 && snapshot &&
+                snapshot->stats.iterations >= capture_after)
+                frame_limit = frame + 2;
+            if (capture_after > 0 && frame_limit == 0 && state == RunState::Failed)
+                throw std::runtime_error(controller.error());
+            if (capture_after > 0 && frame_limit == 0 && frame > 5 &&
+                (state == RunState::Converged || state == RunState::Finished))
+                frame_limit = frame + 2;
             if (snapshot && (snapshot != previous || selected != previous_field)) {
                 values = scalar_field(*snapshot->mesh, snapshot->conservative, snapshot->gas,
                                       Field(selected));

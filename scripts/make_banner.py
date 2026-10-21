@@ -81,6 +81,45 @@ def main():
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(svg)
     print(f'Wrote {out}')
+    pipeline()
+
+
+def pipeline():
+    """Solver pipeline diagram: one timestep of the shared CPU/CUDA finite-volume operator."""
+    stages = [('Conservative state', 'rho, rho u, rho v, rho E (SoA)'),
+              ('Primitive conversion', 'positivity check, CFL bound per cell'),
+              ('Reconstruction', 'MUSCL slopes + transport gradients'),
+              ('Face fluxes', 'rotated HLLC / HLLE + corrected viscous flux'),
+              ('Residual', 'face sums + axisymmetric source'),
+              ('SSP-RK2 update', 'two stages, or local pseudo-time'),
+              ('Diagnostics', 'residual RMS, boundary mass flux, one transfer')]
+    W, H, bw, bh, gap = 1200, 190, 150, 92, 22
+    x0 = (W - (len(stages) * bw + (len(stages) - 1) * gap)) / 2
+    parts = ['<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1220"/><stop offset="1" stop-color="#10263f"/></linearGradient>'
+             '<marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#86b6ef"/></marker></defs>',
+             f'<rect width="{W}" height="{H}" fill="url(#g)"/>']
+    for i, (title, sub) in enumerate(stages):
+        x = x0 + i * (bw + gap)
+        y = (H - bh) / 2
+        parts.append(f'<rect x="{x:.0f}" y="{y:.0f}" width="{bw}" height="{bh}" rx="12" fill="#1c5cab" fill-opacity="0.45" stroke="#86b6ef" stroke-width="1.2"/>')
+        parts.append(f'<text x="{x + bw / 2:.0f}" y="{y + 34:.0f}" text-anchor="middle" font-family="system-ui, -apple-system, \'Segoe UI\', sans-serif" font-size="14" font-weight="600" fill="#f0efec">{title}</text>')
+        words, lines, cur = sub.split(), [], ''
+        for w in words:
+            if len(cur) + len(w) + 1 > 22:
+                lines.append(cur)
+                cur = w
+            else:
+                cur = (cur + ' ' + w).strip()
+        lines.append(cur)
+        for j, line in enumerate(lines[:3]):
+            parts.append(f'<text x="{x + bw / 2:.0f}" y="{y + 54 + 15 * j:.0f}" text-anchor="middle" font-family="system-ui, -apple-system, \'Segoe UI\', sans-serif" font-size="11" fill="#c3c2b7">{line}</text>')
+        if i < len(stages) - 1:
+            parts.append(f'<line x1="{x + bw + 3:.0f}" y1="{H / 2:.0f}" x2="{x + bw + gap - 3:.0f}" y2="{H / 2:.0f}" stroke="#86b6ef" stroke-width="1.5" marker-end="url(#a)"/>')
+    parts.append(f'<text x="{W / 2:.0f}" y="{H - 12}" text-anchor="middle" font-family="system-ui, -apple-system, \'Segoe UI\', sans-serif" font-size="12" fill="#898781">One timestep of the shared header-only operator; CPU and CUDA call the same functions and differ only in scheduling and memory</text>')
+    svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" role="img" aria-label="AstraFlow solver pipeline">' + ''.join(parts) + '</svg>\n'
+    out = ROOT / 'docs/assets/pipeline.svg'
+    out.write_text(svg)
+    print(f'Wrote {out}')
 
 
 if __name__ == '__main__':
