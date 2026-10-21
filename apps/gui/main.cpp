@@ -158,7 +158,9 @@ int main(int argc, char **argv) {
                 smoke = true;
                 frame_limit = 240;
             } else if (a == "--help") {
-                std::cout << "astraflow_gui [--config FILE] [--smoke-test] [--capture FILE.ppm]\n";
+                std::cout
+                    << "AstraFlow " << version()
+                    << "\nastraflow_gui [--config FILE] [--smoke-test] [--capture FILE.ppm]\n";
                 return 0;
             } else if (i + 1 < argc && a == "--config")
                 config_path = argv[++i];

@@ -11,17 +11,25 @@ void interrupt(int) { interrupted = 1; }
 #include <optional>
 int main(int argc, char **argv) {
     try {
-        std::filesystem::path config_path, initial_path;
+        std::filesystem::path config_path, initial_path, state_path;
         std::optional<std::string> backend, precision, output;
         std::optional<int> iterations;
         for (int i = 1; i < argc; ++i) {
             std::string arg = argv[i];
             if (arg == "--help") {
-                std::cout << "AstraFlow finite-volume CFD\nUsage: astraflow_cli --config FILE "
+                std::cout << "AstraFlow finite-volume CFD " << astraflow::version()
+                          << "\nUsage: astraflow_cli --config FILE "
                              "[--backend cpu|cuda] [--precision float|double]\n  [--output "
                              "DIRECTORY] [--max-iterations N] [--initial-state FILE]\n  "
+                             "[--threads N]   CPU reference backend worker threads\n  "
+                             "[--write-state FILE]   Export the final physical state (schema 1)\n  "
+                             "--version       Print the version and exit\n  "
                              "--device-info   Detect GPU and "
                              "execute native architecture probe\n";
+                return 0;
+            }
+            if (arg == "--version") {
+                std::cout << "AstraFlow " << astraflow::version() << '\n';
                 return 0;
             }
             if (arg == "--device-info") {
@@ -35,13 +43,21 @@ int main(int argc, char **argv) {
                 config_path = value;
             else if (arg == "--initial-state")
                 initial_path = value;
+            else if (arg == "--write-state")
+                state_path = value;
             else if (arg == "--backend")
                 backend = value;
             else if (arg == "--precision")
                 precision = value;
             else if (arg == "--output")
                 output = value;
-            else if (arg == "--max-iterations") {
+            else if (arg == "--threads") {
+                std::size_t used = 0;
+                int n = std::stoi(value, &used);
+                if (used != value.size())
+                    throw std::invalid_argument("Invalid thread count");
+                astraflow::set_cpu_threads(n);
+            } else if (arg == "--max-iterations") {
                 std::size_t used = 0;
                 int n = std::stoi(value, &used);
                 if (used != value.size())
@@ -66,31 +82,14 @@ int main(int argc, char **argv) {
             std::cout << astraflow::device_info() << '\n';
         std::vector<astraflow::State<double>> initial;
         nlohmann::json initialization;
+        if (!state_path.empty() && std::filesystem::exists(state_path))
+            throw std::runtime_error("State export file already exists: " + state_path.string());
         if (!initial_path.empty()) {
             std::ifstream in(initial_path);
             if (!in)
                 throw std::runtime_error("Cannot open initial-state file");
             in >> initialization;
-            if (initialization.at("schema") != 1)
-                throw std::invalid_argument("Unknown initial-state schema");
-            auto effective = config.json();
-            for (auto key :
-                 {"problem", "gas", "geometry", "mesh", "boundary_conditions", "numerics"})
-                if (initialization.at("configuration").at(key) != effective.at(key))
-                    throw std::invalid_argument("Initial-state configuration mismatch");
-            for (auto row : initialization.at("physical_conservative")) {
-                if (!row.is_array() || row.size() != 4)
-                    throw std::invalid_argument("Invalid initial conservative row");
-                astraflow::State<double> q;
-                for (int k = 0; k < 4; ++k)
-                    q[k] = row[k].get<double>();
-                auto w = astraflow::primitive(q, config.settings.gas);
-                if (!astraflow::physical(w, config.settings.gas))
-                    throw std::invalid_argument("Nonphysical initial state");
-                initial.push_back(w);
-            }
-            if (initial.size() != std::size_t(config.geometry.nx * config.geometry.nr))
-                throw std::invalid_argument("Initial-state grid size mismatch");
+            initial = astraflow::import_state(initialization, config);
         }
         astraflow::Simulation simulation(config, initial);
         astraflow::RunOutput writer(simulation);
@@ -123,8 +122,14 @@ int main(int argc, char **argv) {
             std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start)
                 .count();
         auto result = writer.finish(simulation, ms);
-        std::cout << "Backend: " << config.backend << " (" << config.precision
-                  << ")\nTime integration: " << simulation.time_integration()
+        if (!state_path.empty() && simulation.termination() != "invalid_state") {
+            std::ofstream out(state_path);
+            out.exceptions(std::ios::failbit | std::ios::badbit);
+            out << astraflow::export_state(simulation).dump() << '\n';
+        }
+        std::cout << "AstraFlow " << astraflow::version() << "\nBackend: " << config.backend << " ("
+                  << config.precision << ")\nCPU threads: " << simulation.stats().threads
+                  << "\nTime integration: " << simulation.time_integration()
                   << "\nGrid: " << simulation.mesh().nx << 'x' << simulation.mesh().nr
                   << "\nIterations: " << result["iterations"]
                   << "\nPhysical simulated time: " << result["simulated_time"]

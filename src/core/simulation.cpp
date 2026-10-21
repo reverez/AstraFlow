@@ -62,6 +62,8 @@ Simulation::Simulation(Config config, const std::vector<State<double>> &physical
     }
     s.gas.gas_constant = 1;
     s.gas.viscosity /= scales_.density * scales_.velocity * L;
+    s.gas.reference_temperature /= scales_.temperature;
+    s.gas.sutherland_temperature /= scales_.temperature;
     s.gas.rho_floor /= scales_.density;
     s.gas.p_floor /= scales_.pressure;
     s.gas.temperature_floor /= scales_.temperature;
@@ -94,9 +96,16 @@ void Simulation::step() {
         if (s.iterations == 1 || s.iterations % config_.convergence.sampling_interval == 0) {
             engineering_ = engineering(physical_mesh_, state(), config_.settings.gas,
                                        config_.settings.back_pressure);
-            balance_ = balance();
+            // Solver-side numerical boundary fluxes share the residual's sampling stage, so no
+            // host re-evaluation of the spatial operator is needed every sample.
             engineering_["numerical_boundary_mass_flux_mismatch"] =
-                balance_.at("numerical_boundary_mass_flux_mismatch");
+                boundary_mass_mismatch(s.boundary_mass_flux);
+            engineering_["numerical_boundary_mass_flux_nondimensional"] = s.boundary_mass_flux;
+            int interval = config_.convergence.balance_interval;
+            if (interval > 0 && s.iterations % interval == 0) {
+                balance_ = balance();
+                balance_iteration_ = s.iterations;
+            }
             sampled_iteration_ = s.iterations;
             monitor_.sample(s.iterations, s.residual, engineering_);
         }

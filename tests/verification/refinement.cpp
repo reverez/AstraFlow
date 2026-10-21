@@ -3,12 +3,13 @@
 #include <iostream>
 #include <numbers>
 using namespace astraflow;
-TEST_CASE("Smooth 2D entropy wave converges under grid refinement", "[refinement]") {
+static void entropy_wave(Limiter limiter) {
     double errors[3]{};
     int level = 0;
     for (int nx : {20, 40, 80}) {
         auto mesh = rectangular_mesh(nx, nx / 2, 1, 1, true, true);
         Settings settings;
+        settings.limiter = limiter;
         auto solver = make_cpu_solver(mesh, settings);
         std::vector<State<double>> initial;
         for (auto c : mesh.cells)
@@ -30,8 +31,8 @@ TEST_CASE("Smooth 2D entropy wave converges under grid refinement", "[refinement
             mass += u[i] * c.volume;
         }
         errors[level++] = l1;
-        std::cout << "Refinement entropy " << nx << 'x' << nx / 2 << " L1=" << l1
-                  << " L2=" << std::sqrt(l2) << " Linf=" << maximum
+        std::cout << "Refinement entropy " << (limiter == Limiter::MC ? "MC " : "VanAlbada ") << nx
+                  << 'x' << nx / 2 << " L1=" << l1 << " L2=" << std::sqrt(l2) << " Linf=" << maximum
                   << " mass_error=" << std::abs(mass - 1) << '\n';
         REQUIRE(std::abs(mass - 1) < 1e-12);
     }
@@ -40,6 +41,12 @@ TEST_CASE("Smooth 2D entropy wave converges under grid refinement", "[refinement
     REQUIRE(p1 > 1.5);
     REQUIRE(p2 > 1.5);
     REQUIRE(errors[2] < 0.002);
+}
+TEST_CASE("Smooth 2D entropy wave converges under grid refinement", "[refinement]") {
+    entropy_wave(Limiter::MC);
+}
+TEST_CASE("Smooth 2D entropy wave converges with the van Albada limiter", "[refinement]") {
+    entropy_wave(Limiter::VanAlbada);
 }
 TEST_CASE("Compressible Couette temperature converges under refinement", "[refinement]") {
     double errors[3]{};

@@ -25,13 +25,14 @@ class Simulation {
     }
     nlohmann::json balance() const;
     const nlohmann::json &sampled_balance() const { return balance_; }
+    int sampled_balance_iteration() const { return balance_iteration_; }
     const StepStats &normalized_stats() const { return solver_->stats(); }
 
   private:
     Config config_;
     ConvergenceMonitor monitor_;
     nlohmann::json engineering_ = nlohmann::json::object();
-    int sampled_iteration_ = 0;
+    int sampled_iteration_ = 0, balance_iteration_ = -1;
     bool stopped_ = false;
     std::string failure_;
     Scales scales_;

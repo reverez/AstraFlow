@@ -98,8 +98,11 @@ def validate_run(directory):
     st={k:stability([r['iteration'] for r in window],[r[k] for r in window]) for k in OBSERVABLES}
     if any(v['relative_range']>min(5e-4,settings['observable_tolerance']) for v in st.values()):
         raise ValueError('Engineering stability failed')
-    for k,limit,setting in [('mass_conservation_error',1e-3,'mass_mismatch_tolerance'),('mass_flow_spread',2e-3,'station_spread_tolerance')]:
+    numerical=settings.get('mass_gate','interior_estimate')=='numerical_boundary'
+    gate=('numerical_boundary_mass_flux_mismatch',1e-6) if numerical else ('mass_conservation_error',1e-3)
+    for k,limit,setting in [(*gate,'mass_mismatch_tolerance'),('mass_flow_spread',2e-3,'station_spread_tolerance')]:
         if any(row[k]>min(limit,settings[setting]) for row in window): raise ValueError(f'{k} failed')
+    if numerical and not math.isfinite(s['numerical_boundary_mass_flux_mismatch']): raise ValueError('Nonfinite numerical mass gate')
     for i,k in enumerate(RESIDUALS):
         if not math.isclose(residual[-1][k],s['final_residuals'][i],rel_tol=1e-12,abs_tol=1e-30):
             raise ValueError('Summary residual mismatch')

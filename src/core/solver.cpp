@@ -20,5 +20,11 @@ void validate_settings(const Settings &s) {
         !std::isfinite(s.gas.gas_constant) || s.gas.viscosity < 0 ||
         !std::isfinite(s.gas.viscosity) || !(s.gas.prandtl > 0))
         throw std::invalid_argument("Invalid gas or numerical settings");
+    if (s.gas.viscosity_model != ViscosityModel::Constant) {
+        if (!(s.gas.reference_temperature > 0) || !std::isfinite(s.gas.reference_temperature) ||
+            s.gas.sutherland_temperature < 0 || !std::isfinite(s.gas.sutherland_temperature) ||
+            !std::isfinite(s.gas.viscosity_exponent) || s.gas.viscosity_exponent < 0)
+            throw std::invalid_argument("Invalid temperature-dependent viscosity parameters");
+    }
 }
 } // namespace astraflow

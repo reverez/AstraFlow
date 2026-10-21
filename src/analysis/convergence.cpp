@@ -3,7 +3,15 @@
 #include <cmath>
 #include <stdexcept>
 namespace astraflow {
+const char *ConvergenceSettings::mass_gate_key() const {
+    return mass_gate == "numerical_boundary" ? "numerical_boundary_mass_flux_mismatch"
+                                             : "mass_conservation_error";
+}
 void ConvergenceSettings::validate() const {
+    if (mass_gate != "interior_estimate" && mass_gate != "numerical_boundary")
+        throw std::invalid_argument("mass_gate must be interior_estimate or numerical_boundary");
+    if (balance_interval < 0)
+        throw std::invalid_argument("balance_interval must be non-negative");
     if (minimum_iterations < 1 || sampling_interval < 1 || window_iterations < sampling_interval ||
         window_iterations % sampling_interval != 0)
         throw std::invalid_argument(
@@ -37,7 +45,7 @@ void ConvergenceMonitor::sample(int iteration, const std::array<double, 4> &r,
     for (int k = 0; k < 6; ++k)
         sample.values[k] =
             e.at(stability_fields[k]).is_number() ? e.at(stability_fields[k]).get<double>() : NAN;
-    sample.values[6] = e.at("mass_conservation_error").get<double>();
+    sample.values[6] = e.at(settings_.mass_gate_key()).get<double>();
     sample.values[7] = e.at("mass_flow_spread").get<double>();
     // Undefined Isp (zero mass flow) cannot establish rocket steady convergence.
     samples_.push_back(sample);
@@ -75,7 +83,7 @@ void ConvergenceMonitor::sample(int iteration, const std::array<double, 4> &r,
         double scale = std::max(std::abs(mean), 1e-30);
         double range = (xmax - xmin) / scale;
         const char *name = k < 6    ? stability_fields[k]
-                           : k == 6 ? "mass_conservation_error"
+                           : k == 6 ? settings_.mass_gate_key()
                                     : "mass_flow_spread";
         stability_[name] = {
             {"mean", mean},
@@ -114,6 +122,8 @@ nlohmann::json ConvergenceMonitor::report(const std::array<double, 4> &final) co
           {"absolute_residual_target", target_},
           {"relative_residual_target", settings_.relative_residual_target},
           {"observable_relative_range_target", settings_.observable_tolerance},
+          {"mass_gate", settings_.mass_gate},
+          {"mass_gate_key", settings_.mass_gate_key()},
           {"mass_mismatch_target", settings_.mass_mismatch_tolerance},
           {"station_spread_target", settings_.station_spread_tolerance}}},
         {"observable_stability", stability_}};

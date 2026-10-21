@@ -25,3 +25,25 @@ Pinned GUI dependencies: Dear ImGui 1.91.8 (MIT), ImPlot 0.16 (MIT), GLFW 3.4 (z
 ## Performance instrumentation
 
 Optional CUDA events bracket primitive conversion, CFL/reduction and timestep transfer, gradients, convective/viscous faces, residual assembly, RK updates and diagnostic reductions/transfers. Reusable events are allocated with the solver. The normal pipeline leaves stage markers disabled. A single CUB reduction computes the four RMS residual sums directly from residual fields; no residual-square device planes or timestep allocations remain. The benchmark compares equal precision and records warmup, grid, timings, memory and conservative parity norms.
+
+## V2 changes
+
+- **One device-to-host transfer per CUDA step.** Residual square sums, the reduced global
+  timestep, boundary mass-flux sums, the invalid-state index and fallback counters live in a
+  single device record. The RK kernels read the reduced timestep on the device, so no host
+  synchronisation sits between kernels. The previous pipeline synchronised four times per step.
+- **Solver-side numerical boundary mass fluxes.** Both backends sum the reconstructed inlet and
+  outlet HLLC mass fluxes from the same spatial evaluation that produces the residual statistic
+  (second SSP-RK2 stage, or the completed pseudo iterate). The convergence monitor can gate on
+  this quantity (`convergence.mass_gate = "numerical_boundary"`); the full host finite-volume
+  balance is evaluated only at start, finish and every `convergence.balance_interval` samples.
+- **OpenMP CPU reference backend.** Cell and face loops are parallel; residual and boundary
+  sums stay serial and fixed-order, so fields and statistics are bitwise independent of the
+  thread count. The default is one thread (historical reference semantics); `--threads N` or
+  `set_cpu_threads` opts in. Below 2,048 cells every loop stays serial.
+- **`analysis/wall`** evaluates wall traction and heat flux from the production viscous flux
+  function; the CLI writes `wall.csv` and summary loads for viscous no-slip runs.
+- **State export/import** (`--write-state`, `--initial-state`) round-trips schema-1 physical
+  conservative fields through `io/output` with configuration identity checks.
+- **Transport models** (`gas.viscosity_model`) are a `Gas` field, so they travel into every
+  kernel by value with the rest of the settings.

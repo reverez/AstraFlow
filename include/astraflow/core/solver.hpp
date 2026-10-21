@@ -24,7 +24,11 @@ struct StepStats {
     // No common physical clock exists for local pseudo-time. These are normalized step bounds.
     double pseudo_dt_min = 0, pseudo_dt_max = 0;
     std::array<double, 4> residual{};
+    // Numerical inlet (inward) and outlet (outward) mass fluxes from the same spatial
+    // evaluation that produced `residual`; nondimensional, per radian when axisymmetric.
+    std::array<double, 2> boundary_mass_flux{};
     std::array<double, 7> stage_ms{};
+    int threads = 1;
     std::uint64_t flux_fallbacks = 0, reconstruction_fallbacks = 0;
     std::size_t device_bytes = 0;
 };
@@ -43,4 +47,16 @@ std::unique_ptr<Solver> make_cuda_solver(const Mesh &, Settings, bool fp64 = fal
                                          SteadySettings = {});
 #endif
 void validate_settings(const Settings &);
+// CPU worker threads for the reference backend. The default is one thread, which keeps the
+// historical single-thread reference semantics; set_cpu_threads opts into OpenMP workers (bound
+// to the solver at construction). cpu_hardware_threads reports the available logical CPUs.
+int cpu_threads();
+int cpu_hardware_threads();
+void set_cpu_threads(int);
+inline double boundary_mass_mismatch(const std::array<double, 2> &f) {
+    double scale = f[0] < 0 ? -f[0] : f[0], o = f[1] < 0 ? -f[1] : f[1];
+    scale = scale > o ? scale : o;
+    double d = f[1] - f[0];
+    return (d < 0 ? -d : d) / (scale > 1e-30 ? scale : 1e-30);
+}
 } // namespace astraflow

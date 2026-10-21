@@ -2,12 +2,19 @@
 #include <array>
 #include <deque>
 #include <nlohmann/json.hpp>
+#include <string>
 namespace astraflow {
 struct ConvergenceSettings {
     int minimum_iterations = 5000, sampling_interval = 20, window_iterations = 2000;
     // Zero disables the additional relative-reduction requirement, never the absolute target.
     double relative_residual_target = 0, observable_tolerance = 5e-4;
     double mass_mismatch_tolerance = 1e-3, station_spread_tolerance = 2e-3;
+    // "interior_estimate": first/last interior cell integrals (V1 legacy, default).
+    // "numerical_boundary": actual reconstructed inlet/outlet face mass fluxes.
+    std::string mass_gate = "interior_estimate";
+    // Full host finite-volume balance cadence; 0 evaluates it only at start and finish.
+    int balance_interval = 0;
+    const char *mass_gate_key() const;
     void validate() const;
 };
 inline constexpr std::array<const char *, 6> stability_fields = {

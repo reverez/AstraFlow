@@ -1,4 +1,6 @@
 #include "astraflow/io/output.hpp"
+#include "astraflow/analysis/wall.hpp"
+#include "astraflow/core/device.hpp"
 #include <chrono>
 #include <iomanip>
 #include <stdexcept>
@@ -52,6 +54,49 @@ void write_vtk(const std::filesystem::path &path, const Mesh &m, const std::vect
         }
     out << "</CellData></Piece></StructuredGrid></VTKFile>\n";
 }
+nlohmann::json export_state(const Simulation &sim) {
+    auto state = sim.state();
+    int n = int(sim.mesh().cells.size());
+    nlohmann::json rows = nlohmann::json::array();
+    for (int i = 0; i < n; ++i)
+        rows.push_back({state[i], state[n + i], state[2 * n + i], state[3 * n + i]});
+    auto effective = sim.config().json();
+    nlohmann::json configuration;
+    for (auto key : {"problem", "gas", "geometry", "mesh", "boundary_conditions", "numerics"})
+        configuration[key] = effective.at(key);
+    return {{"schema", 1},
+            {"astraflow_version", version()},
+            {"iterations", sim.stats().iterations},
+            {"physical_simulated_time", sim.stats().time},
+            {"time_integration", sim.time_integration()},
+            {"layout", "row-major j*nx+i; [rho, rho*u, rho*v, rho*E] in configuration units"},
+            {"configuration", configuration},
+            {"physical_conservative", rows}};
+}
+std::vector<State<double>> import_state(const nlohmann::json &initialization,
+                                        const Config &config) {
+    if (initialization.at("schema") != 1)
+        throw std::invalid_argument("Unknown initial-state schema");
+    auto effective = config.json();
+    for (auto key : {"problem", "gas", "geometry", "mesh", "boundary_conditions", "numerics"})
+        if (initialization.at("configuration").at(key) != effective.at(key))
+            throw std::invalid_argument("Initial-state configuration mismatch");
+    std::vector<State<double>> initial;
+    for (auto row : initialization.at("physical_conservative")) {
+        if (!row.is_array() || row.size() != 4)
+            throw std::invalid_argument("Invalid initial conservative row");
+        State<double> q;
+        for (int k = 0; k < 4; ++k)
+            q[k] = row[k].get<double>();
+        auto w = primitive(q, config.settings.gas);
+        if (!physical(w, config.settings.gas))
+            throw std::invalid_argument("Nonphysical initial state");
+        initial.push_back(w);
+    }
+    if (initial.size() != std::size_t(config.geometry.nx * config.geometry.nr))
+        throw std::invalid_argument("Initial-state grid size mismatch");
+    return initial;
+}
 RunOutput::RunOutput(const Simulation &sim) {
     directory_ = sim.config().output;
     if (directory_.empty())
@@ -90,8 +135,11 @@ RunOutput::RunOutput(const Simulation &sim) {
                {"pseudo_timestep_units", "nondimensional"},
                {"residual_sampling",
                 sim.config().steady.enabled ? "completed_pseudo_iterate" : "second_ssprk2_stage"},
-               {"convergence_mass_gate",
-                "mass_conservation_error (alias: interior_inlet_exit_mass_estimate_mismatch)"}});
+               {"convergence_mass_gate", sim.config().convergence.mass_gate_key()},
+               {"numerical_boundary_mass_flux_sampling",
+                sim.config().steady.enabled ? "completed_pseudo_iterate" : "second_ssprk2_stage"},
+               {"balance_interval", sim.config().convergence.balance_interval},
+               {"astraflow_version", version()}});
     started_ = std::chrono::steady_clock::now();
 }
 void RunOutput::record(const Simulation &sim) {
@@ -108,14 +156,18 @@ void RunOutput::record(const Simulation &sim) {
                          << s.reconstruction_fallbacks << ','
                          << e.at("interior_inlet_exit_mass_estimate_mismatch") << ','
                          << e.at("numerical_boundary_mass_flux_mismatch") << '\n';
-        auto b = sim.sampled_balance();
-        b["iteration"] = s.iterations;
-        b["physical_simulated_time"] = s.time;
-        b["time_integration"] = sim.time_integration();
-        b["interior_inlet_exit_mass_estimate_mismatch"] =
-            e.at("interior_inlet_exit_mass_estimate_mismatch");
-        balance_history_ << b.dump() << '\n';
-        balance_history_.flush();
+        if (sim.sampled_balance_iteration() == s.iterations &&
+            s.iterations != last_balance_iteration_) {
+            last_balance_iteration_ = s.iterations;
+            auto b = sim.sampled_balance();
+            b["iteration"] = s.iterations;
+            b["physical_simulated_time"] = s.time;
+            b["time_integration"] = sim.time_integration();
+            b["interior_inlet_exit_mass_estimate_mismatch"] =
+                e.at("interior_inlet_exit_mass_estimate_mismatch");
+            balance_history_ << b.dump() << '\n';
+            balance_history_.flush();
+        }
         engineering_csv_.flush();
     }
     if (s.iterations == last_iteration_)
@@ -144,6 +196,21 @@ nlohmann::json RunOutput::finish(const Simulation &sim, double wall_ms) {
         result["numerical_boundary_mass_flux_mismatch"] =
             b.at("numerical_boundary_mass_flux_mismatch");
         json_file(directory_ / "final_balance.json", b);
+        if (sim.config().settings.gas.viscosity > 0 && sim.config().settings.no_slip) {
+            auto samples = wall_distribution(sim.mesh(), state, sim.config().settings);
+            if (!samples.empty()) {
+                result["wall"] = wall_summary(sim.mesh(), samples);
+                std::ofstream wall(directory_ / "wall.csv");
+                wall.exceptions(std::ios::failbit | std::ios::badbit);
+                wall << std::setprecision(17)
+                     << "x,r,face_length,face_area,traction_x,traction_r,heat_flux_into_wall,"
+                        "pressure,temperature,upper_wall\n";
+                for (const auto &w : samples)
+                    wall << w.x << ',' << w.r << ',' << w.length << ',' << w.area << ','
+                         << w.traction_x << ',' << w.traction_r << ',' << w.heat_flux_into_wall
+                         << ',' << w.pressure << ',' << w.temperature << ',' << w.upper << '\n';
+            }
+        }
     }
     result.update(sim.convergence_report());
     auto s = sim.stats();
@@ -157,7 +224,9 @@ nlohmann::json RunOutput::finish(const Simulation &sim, double wall_ms) {
     result["pseudo_iterations"] = sim.config().steady.enabled ? s.iterations : 0;
     result["pseudo_dt_min_normalized"] = s.pseudo_dt_min;
     result["pseudo_dt_max_normalized"] = s.pseudo_dt_max;
-    result["convergence_mass_gate"] = "interior_inlet_exit_mass_estimate_mismatch";
+    result["convergence_mass_gate"] = sim.config().convergence.mass_gate_key();
+    result["astraflow_version"] = version();
+    result["cpu_threads"] = s.threads;
     result["termination"] = sim.termination();
     result["residuals_nondimensional"] = s.residual;
     result["flux_fallbacks"] = s.flux_fallbacks;

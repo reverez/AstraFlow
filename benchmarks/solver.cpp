@@ -1,6 +1,8 @@
 #include "astraflow/core/device.hpp"
 #include "astraflow/geometry/nozzle.hpp"
+#include <algorithm>
 #include <chrono>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -30,7 +32,7 @@ Measurement measure(Solver &solver, int iterations) {
 }
 int main(int argc, char **argv) {
     try {
-        int iterations = 50, nx = 0, nr = 0;
+        int iterations = 50, nx = 0, nr = 0, threads = std::min(8, cpu_hardware_threads());
         bool profile = false;
         std::filesystem::path output = "benchmark.json";
         for (int i = 1; i < argc; ++i) {
@@ -45,9 +47,11 @@ int main(int argc, char **argv) {
                 nr = std::stoi(argv[++i]);
             else if (i + 1 < argc && a == "--output")
                 output = argv[++i];
+            else if (i + 1 < argc && a == "--threads")
+                threads = std::stoi(argv[++i]);
             else
                 throw std::invalid_argument("Usage: astraflow_benchmark [--iterations N] [--nx N "
-                                            "--nr N] [--profile] [--output FILE]");
+                                            "--nr N] [--profile] [--threads N] [--output FILE]");
         }
         if (iterations < 1 || ((nx == 0) != (nr == 0)))
             throw std::invalid_argument("Invalid benchmark dimensions/count");
@@ -56,12 +60,17 @@ int main(int argc, char **argv) {
         nlohmann::json report = {
             {"device", device_info()},
             {"precision", "FP32 CPU and GPU"},
+            {"astraflow_version", version()},
+            {"cpu_threads", threads},
+            {"omp_wait_policy",
+             std::getenv("OMP_WAIT_POLICY") ? std::getenv("OMP_WAIT_POLICY") : ""},
+            {"omp_proc_bind", std::getenv("OMP_PROC_BIND") ? std::getenv("OMP_PROC_BIND") : ""},
             {"iterations", iterations},
             {"warmup_iterations", 20},
             {"profile_enabled", profile},
             {"stage_names",
-             {"primitive_conversion", "CFL_and_host_dt", "gradients", "convective_viscous_faces",
-              "residual_assembly", "RK_update", "diagnostic_reductions_and_transfers"}},
+             {"primitive_conversion", "CFL_reduction", "gradients", "convective_viscous_faces",
+              "residual_assembly", "RK_update", "diagnostic_reductions_and_single_transfer"}},
             {"results", nlohmann::json::array()}};
         std::vector<std::pair<int, int>> grids =
             nx ? std::vector<std::pair<int, int>>{{nx, nr}}
@@ -76,14 +85,27 @@ int main(int argc, char **argv) {
             s.gas.viscosity = 1e-4;
             s.profile = profile;
             auto initial = nozzle_initial_state(mesh, g, s);
+            // Single-thread timing is the historical reference; the parallel figure uses every
+            // available OpenMP worker. Fields must agree bitwise between the two.
+            int workers = threads;
+            set_cpu_threads(1);
             auto cpu = make_cpu_solver(mesh, s, false);
             cpu->initialize(initial);
             auto cm = measure(*cpu, iterations);
+            set_cpu_threads(workers);
+            auto parallel = make_cpu_solver(mesh, s, false);
+            parallel->initialize(initial);
+            auto pm = measure(*parallel, iterations);
+            if (parallel->state() != cpu->state())
+                throw std::runtime_error("Parallel CPU backend diverged from single-thread result");
             nlohmann::json row = {{"nx", x},
                                   {"nr", r},
                                   {"cells", x * r},
                                   {"cpu_iteration_ms", cm.iteration_ms},
-                                  {"cpu_wall_ms", cm.wall_ms}};
+                                  {"cpu_wall_ms", cm.wall_ms},
+                                  {"cpu_threads", workers},
+                                  {"cpu_parallel_iteration_ms", pm.iteration_ms},
+                                  {"cpu_parallel_speedup", cm.iteration_ms / pm.iteration_ms}};
 #ifdef ASTRAFLOW_HAS_CUDA
             auto gpu = make_cuda_solver(mesh, s, false);
             gpu->initialize(initial);
@@ -105,12 +127,13 @@ int main(int argc, char **argv) {
             row["parity_max"] = max;
             row["parity_L1"] = l1;
             row["parity_L2"] = std::sqrt(l2);
-            std::cout << x << 'x' << r << " CPU=" << cm.iteration_ms
-                      << " ms GPU=" << gm.iteration_ms
+            std::cout << x << 'x' << r << " CPU=" << cm.iteration_ms << " ms CPUx" << workers << "="
+                      << pm.iteration_ms << " ms GPU=" << gm.iteration_ms
                       << " ms speedup=" << cm.iteration_ms / gm.iteration_ms
                       << " memory=" << gpu->stats().device_bytes << " parity_max=" << max << '\n';
 #else
-            std::cout << x << 'x' << r << " CPU=" << cm.iteration_ms << " ms\n";
+            std::cout << x << 'x' << r << " CPU=" << cm.iteration_ms << " ms CPUx" << workers << "="
+                      << pm.iteration_ms << " ms\n";
 #endif
             report["results"].push_back(row);
         }

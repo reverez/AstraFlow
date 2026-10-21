@@ -80,7 +80,8 @@ Balance finite_volume_balance(const Mesh &m, const std::vector<double> &u, Setti
         double theta = 0;
         if (cell.radial_source > 0 && s.gas.viscosity > 0) {
             double vr = wv.get(i)[2] / cell.r;
-            theta = s.gas.viscosity * (2 * vr - (2.0 / 3) * (gxv.get(i)[1] + grv.get(i)[2] + vr));
+            double mu = viscosity(transport_variables(wv.get(i), s.gas)[3], s.gas);
+            theta = mu * (2 * vr - (2.0 / 3) * (gxv.get(i)[1] + grv.get(i)[2] + vr));
         }
         b.source[i][2] = cell.radial_source * (wv.get(i)[3] - theta);
         b.total[i] = fv_residual(i, all, wv, gxv, grv, m.cells.data(), m.faces.data(), s);

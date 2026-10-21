@@ -128,7 +128,10 @@ AF_HD State<T> viscous_flux(int index, View<T> w, View<T> gx, View<T> gr, const 
         y[3] -= normal * T(f.nr);
     }
     T hoop = cells[owner].radial_source > 0 ? (f.r > 0 ? v / T(f.r) : y[2]) : T(0);
-    T mu = T(s.gas.viscosity), div = x[1] + y[2] + hoop;
+    // Face transport coefficients use the face-average temperature of the two states.
+    T face_temperature =
+        T(0.5) * (transport_variables(l, s.gas)[3] + transport_variables(r, s.gas)[3]);
+    T mu = viscosity(face_temperature, s.gas), div = x[1] + y[2] + hoop;
     T xx = mu * (T(2) * x[1] - T(2.0 / 3) * div), rr = mu * (T(2) * y[2] - T(2.0 / 3) * div),
       xr = mu * (y[1] + x[2]);
     T tx = xx * T(f.nx) + xr * T(f.nr), tr = xr * T(f.nx) + rr * T(f.nr);
@@ -178,7 +181,8 @@ AF_HD State<T> fv_residual(int i, View<T> flux, View<T> w, View<T> gx, View<T> g
     T theta = 0;
     if (c.radial_source > 0 && s.gas.viscosity > 0) {
         T vr = w.get(i)[2] / T(c.r);
-        theta = T(s.gas.viscosity) * (T(2) * vr - T(2.0 / 3) * (gx.get(i)[1] + gr.get(i)[2] + vr));
+        T mu = viscosity(transport_variables(w.get(i), s.gas)[3], s.gas);
+        theta = mu * (T(2) * vr - T(2.0 / 3) * (gx.get(i)[1] + gr.get(i)[2] + vr));
     }
     res[2] += T(c.radial_source) * (w.get(i)[3] - theta);
     return res;
@@ -192,7 +196,8 @@ template <class T> AF_HD T fv_timestep(State<T> w, const Cell &c, const Face *fa
     T convection = T(2 * s.cfl * c.volume) / sigma;
     if (s.gas.viscosity <= 0)
         return convection;
-    T diffusivity = T(s.gas.viscosity) * larger(T(4.0 / 3), T(s.gas.gamma / s.gas.prandtl)) / w[0];
+    T mu = viscosity(transport_variables(w, s.gas)[3], s.gas);
+    T diffusivity = mu * larger(T(4.0 / 3), T(s.gas.gamma / s.gas.prandtl)) / w[0];
     T diffusion = T(0.5 * s.cfl) /
                   (diffusivity * T(1 / (c.dx * c.dx) + (2 + c.skew * c.skew) / (c.dr * c.dr)));
     return T(1) / (T(1) / convection + T(1) / diffusion);

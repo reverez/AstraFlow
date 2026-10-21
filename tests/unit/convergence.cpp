@@ -9,10 +9,43 @@ nlohmann::json quantities(double flow = 2) {
     for (auto name : stability_fields)
         e[name] = flow;
     e["mass_conservation_error"] = 0.0001;
+    e["numerical_boundary_mass_flux_mismatch"] = 1e-9;
     e["mass_flow_spread"] = 0.0002;
     return e;
 }
 } // namespace
+TEST_CASE("Mass gate selects the interior estimate or the numerical boundary flux",
+          "[unit][convergence]") {
+    ConvergenceSettings s;
+    s.minimum_iterations = 1;
+    s.sampling_interval = 10;
+    s.window_iterations = 10;
+    REQUIRE(std::string(s.mass_gate_key()) == "mass_conservation_error");
+    auto e = quantities();
+    e["mass_conservation_error"] = 0.01; // fails the legacy gate
+    ConvergenceMonitor legacy(s, 1e-6);
+    legacy.sample(10, {1e-7, 1e-7, 1e-7, 1e-7}, e);
+    legacy.sample(20, {1e-7, 1e-7, 1e-7, 1e-7}, e);
+    REQUIRE_FALSE(legacy.converged());
+    s.mass_gate = "numerical_boundary";
+    s.mass_mismatch_tolerance = 1e-6;
+    REQUIRE(std::string(s.mass_gate_key()) == "numerical_boundary_mass_flux_mismatch");
+    ConvergenceMonitor numerical(s, 1e-6);
+    numerical.sample(10, {1e-7, 1e-7, 1e-7, 1e-7}, e);
+    numerical.sample(20, {1e-7, 1e-7, 1e-7, 1e-7}, e);
+    REQUIRE(numerical.converged());
+    auto report = numerical.report({1e-7, 1e-7, 1e-7, 1e-7});
+    REQUIRE(report["convergence_window"]["mass_gate"] == "numerical_boundary");
+    REQUIRE(report["observable_stability"].contains("numerical_boundary_mass_flux_mismatch"));
+    e["numerical_boundary_mass_flux_mismatch"] = 1e-5;
+    numerical.sample(30, {1e-7, 1e-7, 1e-7, 1e-7}, e);
+    REQUIRE_FALSE(numerical.converged());
+    s.mass_gate = "something_else";
+    REQUIRE_THROWS(s.validate());
+    s.mass_gate = "interior_estimate";
+    s.balance_interval = -1;
+    REQUIRE_THROWS(s.validate());
+}
 TEST_CASE("Steady monitor requires a complete stable residual window", "[unit][convergence]") {
     ConvergenceSettings s;
     s.minimum_iterations = 40;

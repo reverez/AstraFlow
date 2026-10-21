@@ -23,7 +23,7 @@ TEST_CASE("Ideal gas conversions and equal-state flux", "[unit]") {
     REQUIRE(rotated.value[0] == Approx(w[0] * w[2]));
 }
 TEST_CASE("Limiters preserve linear slopes and suppress extrema", "[unit]") {
-    for (auto l : {Limiter::Minmod, Limiter::VanLeer, Limiter::MC}) {
+    for (auto l : {Limiter::Minmod, Limiter::VanLeer, Limiter::MC, Limiter::VanAlbada}) {
         REQUIRE(limit(2.0, 2.0, l) == Approx(2));
         REQUIRE(limit(-2.0, -2.0, l) == Approx(-2));
         REQUIRE(limit(-1.0, 1.0, l) == 0);
@@ -32,6 +32,12 @@ TEST_CASE("Limiters preserve linear slopes and suppress extrema", "[unit]") {
     REQUIRE(limit(1.0, 3.0, Limiter::Minmod) == 1);
     REQUIRE(limit(1.0, 3.0, Limiter::VanLeer) == 1.5);
     REQUIRE(limit(1.0, 3.0, Limiter::MC) == 2);
+    REQUIRE(limit(1.0, 3.0, Limiter::VanAlbada) == Approx(1.2));
+    REQUIRE(limit(3.0, 1.0, Limiter::VanAlbada) == Approx(1.2));
+    // Van Albada lies between minmod and MC and is smooth: tiny perturbations change it little.
+    REQUIRE(limit(1.0, 1.0 + 1e-9, Limiter::VanAlbada) == Approx(1).epsilon(1e-8));
+    REQUIRE(limit(0.0, 1.0, Limiter::FirstOrderDiagnostic) == 0);
+    REQUIRE(limit(1.0, 1.0, Limiter::FirstOrderDiagnostic) == 0);
 }
 TEST_CASE("HLLC contact and expansion fallback", "[unit]") {
     Gas gas;
@@ -53,9 +59,9 @@ TEST_CASE("Uniform flow is preserved and invalid input rejected", "[unit]") {
     REQUIRE_THROWS(Euler1D<double>(0));
     REQUIRE_THROWS(s.initialize(std::vector<State<double>>(64, {{-1, 0, 0, 1}})));
 }
-TEST_CASE("Sod exact solution and conservative mass", "[verification]") {
+static void sod_case(Limiter limiter) {
     constexpr int n = 400;
-    Euler1D<double> s(n);
+    Euler1D<double> s(n, Gas{}, 0.4, limiter);
     s.sod();
     s.advance(0.2);
     reference::Riemann exact({{1, 0, 0, 1}}, {{0.125, 0, 0, 0.1}}, 1.4);
@@ -72,11 +78,16 @@ TEST_CASE("Sod exact solution and conservative mass", "[verification]") {
         for (int k = 0; k < 4; ++k)
             error[k] += std::abs(w[k] - ref[k]) / n;
     }
-    std::cout << "Sod nx=400 L1 rho=" << error[0] << " u=" << error[1] << " p=" << error[3]
+    std::cout << "Sod nx=400 limiter=" << (limiter == Limiter::MC ? "MC" : "VanAlbada")
+              << " L1 rho=" << error[0] << " u=" << error[1] << " p=" << error[3]
               << " mass_error=" << std::abs(mass - 0.5625) << '\n';
     REQUIRE(error[0] < 0.006);
     REQUIRE(error[1] < 0.008);
     REQUIRE(error[3] < 0.005);
     REQUIRE(mass == Approx(0.5625).margin(1e-12));
     REQUIRE(s.diagnostics().reconstruction_fallbacks == 0);
+}
+TEST_CASE("Sod exact solution and conservative mass", "[verification]") { sod_case(Limiter::MC); }
+TEST_CASE("Sod exact solution with the smooth van Albada limiter", "[verification]") {
+    sod_case(Limiter::VanAlbada);
 }
