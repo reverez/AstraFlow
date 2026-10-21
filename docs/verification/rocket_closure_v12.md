@@ -70,11 +70,61 @@ endpoint agrees with it to the tolerance.
 
 ## V1.3: medium continuation and fine grid
 
-<!--V13RESULTS-->
+### Medium grid (256×64): closed by continuation
+
+The V1.2 trajectory was continued from its preserved 400,000-iteration state. The continuation
+reached `steady_converged` after a further 360,760 iterations, i.e. **760,760 iterations in
+total**, 305.5 s of continuation wall time, zero HLLC and reconstruction fallbacks, physical time
+8.77 ms. Final residuals [2.97e-7, 2.80e-8, 2.29e-7, 9.88e-7]; numerical boundary mass mismatch
+1.13e-9; station spread 1.22e-3 (gate 2e-3). The window relative ranges of the primary
+observables are ≤ 7e-9. The interior-cell estimate is 1.07e-3, which would still fail the retired
+V1.1 gate at the converged state, confirming that that estimator measures quadrature error rather
+than conservation.
+
+Residual decay over the whole 760k trajectory is a single exponential with no plateau (figure
+below), which is the behaviour hypothesis H1 predicted for the smooth limiter and the opposite of
+the MC history recorded in C2b.
+
+| Quantity | 128×32 | 256×64 | Relative difference |
+|---|---:|---:|---:|
+| Mass flow (kg/s) | 0.09668183 | 0.09620467 | 5.0e-3 |
+| Thrust (N) | 170.9636 | 170.2230 | 4.4e-3 |
+| Specific impulse (s) | 180.3176 | 180.4269 | 6.1e-4 |
+| Throat Mach (minimum-area station) | 1.006881 | 0.979125 | 2.8e-2 |
+| Exit Mach | 2.220332 | 2.202603 | 8.0e-3 |
+| Exit pressure (Pa) | 162,670.6 | 162,738.2 | 4.2e-4 |
+| Exit temperature (K) | 1413.30 | 1424.64 | 8.0e-3 |
+
+Centreline-row profile Linf differences on the common x/L domain: Mach 0.0163 at x/L = 0.988,
+pressure 5.84 kPa at x/L = 0.449 (throat region), temperature 9.95 K at x/L = 0.988. The "throat
+Mach" metric samples the minimum-area station, whose cell-centre position moves under refinement;
+its 2.8% change is dominated by that station shift and it is not used as a convergence measure.
+
+### Fine grid (512×128): not closed under the V1.3 cap
+
+The fresh 512×128 integration reached the 2,500,000-iteration cap in 4,861 s wall time with
+residuals [6.52e-6, 7.03e-7, 5.20e-6, 2.17e-5], numerical boundary mass mismatch 1.19e-7, zero
+fallbacks, observables stationary to ≤ 5e-8 over the final window, and a monotone exponential
+energy-residual decay (1.28e-4 at 0.5M, 7.74e-5 at 1.0M, 4.87e-5 at 1.5M, 3.20e-5 at 2.0M,
+2.17e-5 at 2.5M; e-folding length 1.10M → 1.27M iterations). Its engineering values (mass flow
+0.0958716 kg/s, thrust 169.759 N, exit Mach 2.21284) are **iteration-limited diagnostics, not
+accepted results**, and are not used below. The fine-grid budget was again under-estimated: the
+decay length in iterations grew by about 8× from medium to fine, not the 2× the protocol assumed.
+V1.3 therefore ends partially accepted; the [V1.4 protocol](v14_fine_continuation_protocol.md)
+pre-registers a continuation with a budget derived from this decay record.
+
+<!--V14RESULTS-->
 
 ## Grid study, Richardson analysis and GCI
 
-<!--V13GRID-->
+With two accepted grids the consecutive-pair differences above are the available grid-convergence
+evidence: mass flow and thrust change by 0.50% and 0.44%, Isp and exit pressure by < 0.1%, exit
+Mach and exit temperature by 0.8%, between 128×32 and 256×64. The V1.2 goals (0.5% / 1%) were
+defined for the medium/fine pair and cannot be evaluated yet. Richardson extrapolation and GCI
+require three accepted grids and are **not reported**; the tested implementation in
+`analyze_scientific_closure.py` runs automatically once the fine grid is accepted.
+
+<!--V14GRID-->
 
 ## Figures
 

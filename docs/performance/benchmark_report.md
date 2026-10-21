@@ -54,3 +54,44 @@ Output files must be new. Benchmarks do not assert an expected speedup. The larg
 ## Initial 1D measurement
 
 At M2, 400-cell Sod integration measured CPU/GPU FP32 iteration times 0.0523683/0.248807 ms, and FP64 0.0629333/0.255372 ms. This small 1D case was slower on GPU. Those earlier measurements use the original 1D implementation and are not directly comparable to the 2D table.
+
+## V2 optimisation (2026-10-21)
+
+Same hardware, same benchmark executable protocol (equal FP32, 20 warm-up and 50 measured
+iterations, viscous nozzle, MC, CFL 0.4). The V1.1 executable preserved in
+`build-before-work-root-move/` and the V2 executable were run alternately, twice each, in the same
+machine state, so the comparison is not confounded by laptop clock drift. Conservative parity
+norms are identical between the two executables on every grid (the arithmetic is unchanged).
+
+| Grid | V1.1 GPU ms/iter (runs 1, 2) | V2 GPU ms/iter (runs 1, 2) | V1.1 CPU 1 thread | V2 CPU 1 thread | V2 CPU 8 threads |
+|---|---:|---:|---:|---:|---:|
+| 128 × 32 | 0.363, 0.393 | 0.220, 0.241 | 1.51, 1.45 | 1.59, 1.68 | 1.74, 1.81 |
+| 256 × 64 | 0.447, 0.497 | 0.242, 0.259 | 5.80, 5.64 | 6.87, 6.57 | 3.16, 3.12 |
+| 512 × 128 | 0.554, 0.563 | 0.339, 0.352 | 25.8, 23.2 | 29.9, 28.4 | 8.69, 9.01 |
+| 1024 × 256 | 1.806, 1.842 | 1.868, 1.899 | 109.3, 105.0 | 120.4, 119.2 | 30.4, 33.6 |
+
+What changed and what the numbers say:
+
+- **One transfer per step.** The V1.1 GPU step synchronised four times (timestep readback,
+  invalid-state check, residual sums, fallback counters). V2 keeps the reduced timestep on the
+  device and downloads one diagnostics record after the second RK stage. Launch-bound grids gain
+  the most (−39% at 128 × 32, −45% at 256 × 64, −38% at 512 × 128); the 1024 × 256 case is
+  bandwidth-bound and unchanged within noise (+3%).
+- **Solver-side boundary mass fluxes.** The convergence monitor's numerical mass gate no longer
+  needs a host finite-volume evaluation every 20 iterations. For the FP64 scientific-closure
+  configuration (128 × 32) the end-to-end time for 2,000 iterations fell from 2.85 s to 1.22 s
+  (solver 1.08 → 0.52 ms/iteration, non-solver overhead 0.34 → 0.09 ms/iteration). The exported
+  final field is bitwise identical to the V1.1 executable's.
+- **OpenMP CPU backend.** With 8 threads bound to cores and a passive wait policy the CPU
+  reference reaches 3.6–3.9× at 1024 × 256 and 2.1× at 256 × 64; 128 × 32 is fork/join-bound and
+  no faster. The single-thread V2 path is 5–10% slower than V1.1 on this sample; the serial loop
+  bodies are outlined for OpenMP, and an OpenMP-off build measured the same as the OpenMP build
+  with one thread, so the difference is within the day's variance rather than a confirmed cost.
+- **libgomp pathology on WSL2 hybrid cores.** With the default active spin-wait, 16 threads took
+  113 ms per 128 × 32 iteration (versus 3 ms serial in that machine state); passive waiting
+  brought it to 6 ms, and binding 8 threads to cores to 1.6 ms. The CLI therefore defaults to one
+  thread, and `--threads N` should be used with `OMP_WAIT_POLICY=passive OMP_PROC_BIND=true
+  OMP_PLACES=cores`. The benchmark JSON records both variables.
+
+Raw results: `runs/v2-opt/bench-old-{1,2}.json`, `runs/v2-opt/bench-v2-{1,2}.json` (local, git-ignored);
+the committed `v2-benchmark.json` and `v2-profile.json` are the final V2 samples.

@@ -1,3 +1,5 @@
+> Historical record of V1.0/V1.1 acceptance. The live status is [STATUS.md](STATUS.md).
+
 # AstraFlow Phase 1 Status
 
 ## Environment

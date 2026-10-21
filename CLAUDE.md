@@ -54,7 +54,7 @@ ctest --test-dir build -R nozzle_verification --output-on-failure
 
 Catch2 tags: `[unit]`, `[verification]`, `[nozzle]`, `[viscous]`, `[refinement]`, `[cuda]`, `[balance]`, `[convergence]`, `[steady]`, `[parallel]`, `[wall]`, `[io]`. Anything tagged `[cuda]` is only compiled into the CUDA build.
 
-OpenMP: libgomp's default spin-wait starves this hybrid-core WSL2 laptop (16 threads were 20� slower than 1). Run anything multi-threaded with `OMP_WAIT_POLICY=passive OMP_PROC_BIND=true OMP_PLACES=cores` and at most 8 threads; ctest sets this for the `unit` entry. The CLI defaults to one thread; `--threads N` opts in.
+OpenMP: libgomp's default spin-wait starves this hybrid-core WSL2 laptop (16 threads were 20× slower than 1). Run anything multi-threaded with `OMP_WAIT_POLICY=passive OMP_PROC_BIND=true OMP_PLACES=cores` and at most 8 threads; ctest sets this for the `unit` entry. The CLI defaults to one thread; `--threads N` opts in.
 
 ## Running
 
@@ -110,12 +110,12 @@ These come from the README, `docs/PHASE1_STATUS.md` and the `docs/verification/*
 - Do not claim Nsight/compute-sanitizer results, experimental validation, or grid independence; none exist.
 - Numerical results are accepted only against analytical solutions, conservation, convergence order or CPU/GPU parity. Compiling and producing plausible fields is not acceptance.
 
-## Repository state (as of 2026-10-21)
+## Repository state (as of 2026-10-21, V2.0)
 
-- `main` = tag `v1.0.0` (Phase 1, M0–M9 accepted). CPU-only GitHub Actions runs the ctest suite on push/PR.
-- `v1.1-scientific-closure` (current branch) is 6 commits ahead of `main` and **scientifically unresolved**: 128×32 rocket case converges (CUDA/CPU FP64 agree to 1.2e-14); 256×64 stalls at ~1e-4 energy residual (C2b attributes it to a limiter-switching oscillation near the axis); C2c local pseudo-time converges the coarse case 1.45× faster but fails its preset 1e-8 field-equivalence bound. C3–C6 (grid study, Richardson/GCI, figures, acceptance) are blocked. See `docs/PHASE1_STATUS.md` for the checklist and the three reports under `docs/verification/`.
-- The last commit on this branch (`72a6ec2`, C2c) is not on `origin`. A stash and three `reverend/task-*` branches (all pointing at HEAD, no extra commits) relate to an unfinished "add `--version` to the CLI" task.
-- Phase 2 (plume, chemistry, turbulence, real-gas thermo, CUDA/OpenGL interop, nozzle optimisation) is deferred until V1.1 closes.
+- `main` = tag `v1.0.0`. All later work is on `v1.1-scientific-closure`; `docs/STATUS.md` is the live status record and `docs/PHASE1_STATUS.md` the V1.0/V1.1 history.
+- V1.1 (MC limiter) closed only the 128×32 rocket grid. V1.2/V1.3 (van Albada, numerical mass gate, pre-registered protocols in `docs/verification/v12_closure_protocol.md`, `v13_continuation_protocol.md`) closed 128×32 (49,480 it.) and 256×64 (760,760 it.) and supported the pseudo-time same-root hypothesis; 512×128 reached its 2.5M cap still decaying and is continued under `v14_fine_continuation_protocol.md`. Results: `docs/verification/rocket_closure_v12.md`. Preserved runs live under git-ignored `runs/v12-closure`, `runs/v13-closure`, `runs/v14-closure`, `runs/v12-pseudo-root`.
+- Never rerun a recorded study case to regenerate a report; the analysis and plot scripts read the preserved directories. Budgets/caps for a study are fixed in its protocol before launch; a new budget means a new pre-registered protocol (that is how V1.3 and V1.4 came about).
+- Not done, deliberately: plume, chemistry, turbulence, real gas, multi-GPU, CUDA/OpenGL interop (no verification path yet).
 
 ## Conventions
 
