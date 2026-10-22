@@ -323,6 +323,17 @@ Residuals are RMS time derivatives in nondimensional solver units; fields, times
 
 ## Interfaces
 
+**Quick start on the development machine**
+
+```bash
+./astraflow                                   # GUI with the rocket example (any WSL shell)
+./astraflow gui examples/rocket_nozzle/cooled_wall.json
+./astraflow run examples/rocket_nozzle/config.json --output runs/demo
+./astraflow test                              # both CTest suites
+```
+
+On Windows, double-click `AstraFlow.cmd` (or a shortcut or copy of it anywhere) to open the GUI through WSLg; the Linux binaries cannot be started from Explorer directly.
+
 **CLI**
 
 ```bash
