@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# One-word launcher from any WSL shell:  ./astraflow            (GUI, rocket example)
+#                                        ./astraflow gui FILE   (GUI with a config)
+#                                        ./astraflow run FILE   (CLI run, output under runs/)
+#                                        ./astraflow test       (both test suites)
+set -euo pipefail
+cd "$(dirname "$(readlink -f "$0")")"
+export OMP_WAIT_POLICY=passive OMP_PROC_BIND=true OMP_PLACES=cores
+case "${1:-gui}" in
+  gui)  shift || true
+        if [ $# -gt 0 ] && [ "${1#--}" = "$1" ]; then exec ./build/astraflow_gui --config "$@"; fi
+        exec ./build/astraflow_gui "$@" ;;
+  run)  shift; exec ./build/astraflow_cli --config "$1" "${@:2}" ;;
+  test) ctest --test-dir build-cpu --output-on-failure && ctest --test-dir build --output-on-failure ;;
+  *)    exec ./build/astraflow_cli "$@" ;;
+esac
